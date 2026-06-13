@@ -1,0 +1,71 @@
+name: Deploy Admin Web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two admin deploys race to overwrite the live site.
+concurrency:
+  group: deploy-admin-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  # Opt JavaScript actions into Node.js 24 ahead of GitHub's June 2026 default switch.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  deploy:
+    name: Build & deploy admin to iaales.lat/admin
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (release)
+        env:
+          # The API is served from the same host. Override via the
+          # VITE_API_BASE_URL repository variable if it ever moves.
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://iaales.lat/api/v1' }}
+        run: npm run build
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy to server
+        run: |
+          SSH_USER="${{ secrets.SSH_USER }}"
+          SSH_HOST="${{ secrets.SSH_HOST }}"
+          # Ensure the subpath web root exists, then mirror the build output
+          # into it. --delete prunes files removed between builds; the trailing
+          # slash copies contents.
+          ssh -i ~/.ssh/id_ed25519 "$SSH_USER@$SSH_HOST" \
+            'mkdir -p /var/www/iaales.lat/admin'
+          rsync -az --delete -e "ssh -i ~/.ssh/id_ed25519" \
+            dist/ "$SSH_USER@$SSH_HOST:/var/www/iaales.lat/admin/"
+          # nginx (www-data) only needs read access; normalize ownership so the
+          # web root isn't left root-owned.
+          ssh -i ~/.ssh/id_ed25519 "$SSH_USER@$SSH_HOST" \
+            'chown -R www-data:www-data /var/www/iaales.lat/admin'
+
+      - name: Clean up
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519
