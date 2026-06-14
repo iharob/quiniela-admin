@@ -15,6 +15,7 @@ import {
   InputLabel,
   Link,
   ListItemText,
+  ListSubheader,
   MenuItem,
   OutlinedInput,
   Paper,
@@ -209,6 +210,7 @@ function PaymentDialog({
   const [status, setStatus] = useState<LinkedPaymentStatus>(payment?.status ?? 'PENDING')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState('')
+  const [benSearch, setBenSearch] = useState('')
 
   const onSubmit = async (): Promise<void> => {
     if (payerUserId === '') {
@@ -244,6 +246,18 @@ function PaymentDialog({
   }
 
   const userOptions = users ?? []
+  // Beneficiaries are quiniela participants (have predictions); keep any
+  // already-selected user too so they can still be unchecked. Then apply the
+  // in-dropdown search.
+  const benQuery = benSearch.trim().toLowerCase()
+  const benOptions = userOptions
+    .filter((u) => u.hasPredictions || beneficiaryIds.includes(u.userId))
+    .filter(
+      (u) =>
+        benQuery === '' ||
+        u.name.toLowerCase().includes(benQuery) ||
+        u.email.toLowerCase().includes(benQuery),
+    )
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -275,6 +289,7 @@ function PaymentDialog({
               value={beneficiaryIds}
               onChange={(e) => setBeneficiaryIds(e.target.value as number[])}
               input={<OutlinedInput label="Cubre a (beneficiarios)" />}
+              MenuProps={{ autoFocus: false }}
               renderValue={(selected) =>
                 userOptions
                   .filter((u) => (selected as number[]).includes(u.userId))
@@ -282,12 +297,26 @@ function PaymentDialog({
                   .join(', ')
               }
             >
-              {userOptions.map((u) => (
+              <ListSubheader sx={{ p: 1, bgcolor: 'background.paper' }}>
+                <TextField
+                  size="small"
+                  autoFocus
+                  fullWidth
+                  placeholder="Buscar participante"
+                  value={benSearch}
+                  onChange={(e) => setBenSearch(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
+                />
+              </ListSubheader>
+              {benOptions.map((u) => (
                 <MenuItem key={u.userId} value={u.userId}>
                   <Checkbox checked={beneficiaryIds.includes(u.userId)} />
                   <ListItemText primary={u.name || u.email} />
                 </MenuItem>
               ))}
+              {benOptions.length === 0 && (
+                <MenuItem disabled>Sin participantes</MenuItem>
+              )}
             </Select>
           </FormControl>
 

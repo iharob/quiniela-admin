@@ -9,7 +9,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { useSettings, useUsers } from '../api/hooks'
+import { usePayments, useSettings, useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
 
@@ -43,6 +43,7 @@ function MetricCard({
 export function DashboardPage(): JSX.Element {
   const { data: users, isLoading, error } = useUsers()
   const { data: settings } = useSettings()
+  const { data: payments } = usePayments()
 
   const stats = useMemo(() => {
     const fee = settings?.entryFeeUsd ?? 0
@@ -53,17 +54,23 @@ export function DashboardPage(): JSX.Element {
     const pending = participants.filter((u) => u.paymentStatus === 'PENDING').length
     const total = participants.length
     const unpaid = total - paid - pending
+    // Collected is the actual money in: the sum of verified payment amounts
+    // (treated as USD, per the single-currency assumption).
+    const collected = (payments ?? [])
+      .filter((p) => p.status === 'VERIFIED')
+      .reduce((sum, p) => sum + (p.amount ?? 0), 0)
+    const expected = total * fee
     return {
       fee,
       total,
       paid,
       pending,
       unpaid,
-      collected: paid * fee,
-      expected: total * fee,
-      remaining: (total - paid) * fee,
+      collected,
+      expected,
+      remaining: Math.max(0, expected - collected),
     }
-  }, [users, settings])
+  }, [users, settings, payments])
 
   if (isLoading) {
     return (
@@ -109,8 +116,8 @@ export function DashboardPage(): JSX.Element {
       </Grid>
 
       <Typography variant="caption" color="text.secondary">
-        Solo se consideran usuarios con predicciones. El cálculo asume {formatUsd(stats.fee)} por
-        participante, independientemente de la moneda en que se haya pagado.
+        Recaudado = suma de los pagos verificados (en USD). El total esperado y lo que falta por
+        cobrar asumen {formatUsd(stats.fee)} por participante (usuarios con predicciones).
       </Typography>
     </Stack>
   )
