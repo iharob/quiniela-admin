@@ -46,11 +46,33 @@ import {
 import { useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
+import { SortCell, useSort, type SortValue } from '../components/sort'
 import type { Currency, LinkedPaymentStatus, Payment } from '../api/types'
 
 function formatAmount(p: Payment): string {
   if (p.amount == null) return '—'
   return `${p.amount.toFixed(2)} ${p.currency}`
+}
+
+function paymentSortValue(p: Payment, key: string): SortValue {
+  switch (key) {
+    case 'paymentId':
+      return p.paymentId
+    case 'payerName':
+      return p.payerName
+    case 'beneficiaries':
+      return p.beneficiaries.map((b) => b.name).join(', ')
+    case 'amount':
+      return p.amount ?? null
+    case 'paymentMethodLabel':
+      return p.paymentMethodLabel
+    case 'reference':
+      return p.reference
+    case 'status':
+      return p.status
+    default:
+      return undefined
+  }
 }
 
 export function PaymentsPage(): JSX.Element {
@@ -59,6 +81,7 @@ export function PaymentsPage(): JSX.Element {
   const update = useUpdatePayment()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<Payment | null>(null)
+  const { sorted, sort } = useSort(data ?? [], paymentSortValue, 'paymentId', 'desc')
   const closeDialog = (): void => {
     setAdding(false)
     setEditing(null)
@@ -101,19 +124,19 @@ export function PaymentsPage(): JSX.Element {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Pagador</TableCell>
-              <TableCell>Cubre a</TableCell>
-              <TableCell>Monto</TableCell>
-              <TableCell>Método</TableCell>
-              <TableCell>Referencia</TableCell>
-              <TableCell>Estado</TableCell>
+              <SortCell label="ID" sortKey="paymentId" sort={sort} />
+              <SortCell label="Pagador" sortKey="payerName" sort={sort} />
+              <SortCell label="Cubre a" sortKey="beneficiaries" sort={sort} />
+              <SortCell label="Monto" sortKey="amount" sort={sort} />
+              <SortCell label="Método" sortKey="paymentMethodLabel" sort={sort} />
+              <SortCell label="Referencia" sortKey="reference" sort={sort} />
+              <SortCell label="Estado" sortKey="status" sort={sort} />
               <TableCell>Comprobante</TableCell>
               <TableCell align="right">Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {data?.map((p) => (
+            {sorted.map((p) => (
               <TableRow key={p.paymentId} hover>
                 <TableCell>{p.paymentId}</TableCell>
                 <TableCell>{p.payerName}</TableCell>

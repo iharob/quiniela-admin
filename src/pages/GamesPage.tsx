@@ -26,13 +26,36 @@ import EditIcon from '@mui/icons-material/Edit'
 import { useGames, useSetGameScore, useSyncGameScore } from '../api/hooks'
 import { extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
+import { SortCell, useSort, type SortValue } from '../components/sort'
 import type { AdminGame } from '../api/types'
+
+function gameSortValue(g: AdminGame, key: string): SortValue {
+  switch (key) {
+    case 'gameId':
+      return g.gameId
+    case 'round':
+      return g.round
+    case 'startsAt':
+      return g.startsAt
+    case 'team1Name':
+      return g.team1Name || g.team1
+    case 'team2Name':
+      return g.team2Name || g.team2
+    case 'winner':
+      return g.winner
+    case 'externalGameId':
+      return g.externalGameId ?? null
+    default:
+      return undefined
+  }
+}
 
 export function GamesPage(): JSX.Element {
   const { data, isLoading, error } = useGames()
   const sync = useSyncGameScore()
   const [editing, setEditing] = useState<AdminGame | null>(null)
   const [toast, setToast] = useState('')
+  const { sorted, sort } = useSort(data ?? [], gameSortValue, 'startsAt')
 
   if (isLoading) {
     return (
@@ -58,19 +81,19 @@ export function GamesPage(): JSX.Element {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Ronda</TableCell>
-              <TableCell>Inicio</TableCell>
-              <TableCell>Local</TableCell>
+              <SortCell label="ID" sortKey="gameId" sort={sort} />
+              <SortCell label="Ronda" sortKey="round" sort={sort} />
+              <SortCell label="Inicio" sortKey="startsAt" sort={sort} />
+              <SortCell label="Local" sortKey="team1Name" sort={sort} />
               <TableCell align="center">Marcador</TableCell>
-              <TableCell>Visitante</TableCell>
-              <TableCell>Ganador</TableCell>
-              <TableCell>Fixture ext.</TableCell>
+              <SortCell label="Visitante" sortKey="team2Name" sort={sort} />
+              <SortCell label="Ganador" sortKey="winner" sort={sort} />
+              <SortCell label="Fixture ext." sortKey="externalGameId" sort={sort} />
               <TableCell align="right">Acciones</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {data?.map((g) => (
+            {sorted.map((g) => (
               <TableRow key={g.gameId} hover>
                 <TableCell>{g.gameId}</TableCell>
                 <TableCell>{g.round}</TableCell>

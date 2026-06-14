@@ -22,6 +22,31 @@ import { usePaymentMethods, useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { ConsistencyChip, LoginTypeChip, PaymentChip } from '../components/chips'
 import { SectionTitle } from '../components/SectionTitle'
+import { SortCell, useSort, type SortValue } from '../components/sort'
+import type { AdminUserListItem } from '../api/types'
+
+function userSortValue(u: AdminUserListItem, key: string): SortValue {
+  switch (key) {
+    case 'userId':
+      return u.userId
+    case 'name':
+      return u.name
+    case 'email':
+      return u.email
+    case 'loginType':
+      return u.loginType
+    case 'hasPredictions':
+      return u.hasPredictions
+    case 'consistency':
+      return u.consistency
+    case 'paymentStatus':
+      return u.paymentStatus
+    case 'paymentMethods':
+      return u.paymentMethods.join(', ')
+    default:
+      return undefined
+  }
+}
 
 interface FilterOption {
   readonly value: string
@@ -113,6 +138,8 @@ export function UsersPage(): JSX.Element {
     })
   }, [data, query, loginType, predictions, consistency, paymentStatus, method])
 
+  const { sorted, sort } = useSort(filtered, userSortValue, 'name')
+
   const methodOptions = useMemo<readonly FilterOption[]>(
     () => (methods ?? []).map((m) => ({ value: m.label, label: m.label })),
     [methods],
@@ -150,18 +177,18 @@ export function UsersPage(): JSX.Element {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Nombre</TableCell>
-              <TableCell>Correo</TableCell>
-              <TableCell>Acceso</TableCell>
-              <TableCell>Predicciones</TableCell>
-              <TableCell>Consistencia</TableCell>
-              <TableCell>Pago</TableCell>
-              <TableCell>Métodos</TableCell>
+              <SortCell label="ID" sortKey="userId" sort={sort} />
+              <SortCell label="Nombre" sortKey="name" sort={sort} />
+              <SortCell label="Correo" sortKey="email" sort={sort} />
+              <SortCell label="Acceso" sortKey="loginType" sort={sort} />
+              <SortCell label="Predicciones" sortKey="hasPredictions" sort={sort} />
+              <SortCell label="Consistencia" sortKey="consistency" sort={sort} />
+              <SortCell label="Pago" sortKey="paymentStatus" sort={sort} />
+              <SortCell label="Métodos" sortKey="paymentMethods" sort={sort} />
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((u) => (
+            {sorted.map((u) => (
               <TableRow
                 key={u.userId}
                 hover

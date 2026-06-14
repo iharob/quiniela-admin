@@ -21,12 +21,26 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { useCreatePaymentMethod, useDeletePaymentMethod, usePaymentMethods } from '../api/hooks'
 import { extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
+import { SortCell, useSort, type SortValue } from '../components/sort'
+import type { PaymentMethod } from '../api/types'
+
+function methodSortValue(m: PaymentMethod, key: string): SortValue {
+  switch (key) {
+    case 'paymentMethodId':
+      return m.paymentMethodId
+    case 'label':
+      return m.label
+    default:
+      return undefined
+  }
+}
 
 export function PaymentMethodsPage(): JSX.Element {
   const { data, isLoading, error } = usePaymentMethods()
   const create = useCreatePaymentMethod()
   const remove = useDeletePaymentMethod()
   const [label, setLabel] = useState('')
+  const { sorted, sort } = useSort(data ?? [], methodSortValue, 'label')
 
   if (isLoading) {
     return (
@@ -65,13 +79,13 @@ export function PaymentMethodsPage(): JSX.Element {
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Nombre</TableCell>
+              <SortCell label="ID" sortKey="paymentMethodId" sort={sort} />
+              <SortCell label="Nombre" sortKey="label" sort={sort} />
               <TableCell align="right" />
             </TableRow>
           </TableHead>
           <TableBody>
-            {data?.map((m) => (
+            {sorted.map((m) => (
               <TableRow key={m.paymentMethodId} hover>
                 <TableCell>{m.paymentMethodId}</TableCell>
                 <TableCell>
