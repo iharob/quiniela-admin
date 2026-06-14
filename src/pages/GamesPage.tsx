@@ -8,6 +8,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  IconButton,
   Paper,
   Snackbar,
   Stack,
@@ -18,6 +19,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import SyncIcon from '@mui/icons-material/Sync'
@@ -50,10 +52,12 @@ export function GamesPage() {
   }
 
   return (
-    <Stack spacing={2}>
-      <Typography variant="h5">Partidos ({data?.length ?? 0})</Typography>
-      <TableContainer component={Paper}>
-        <Table size="small">
+    <Stack spacing={2} sx={{ height: '100%' }}>
+      <Typography variant="h5" sx={{ flexShrink: 0 }}>
+        Partidos ({data?.length ?? 0})
+      </Typography>
+      <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>
@@ -81,17 +85,22 @@ export function GamesPage() {
                 <TableCell>{g.winner || '—'}</TableCell>
                 <TableCell>{g.externalGameId ?? '—'}</TableCell>
                 <TableCell align="right">
-                  <Button size="small" startIcon={<EditIcon />} onClick={() => setEditing(g)}>
-                    Marcador
-                  </Button>
-                  <Button
-                    size="small"
-                    startIcon={<SyncIcon />}
-                    disabled={!g.externalGameId || sync.isPending}
-                    onClick={() => onSync(g)}
-                  >
-                    Sync
-                  </Button>
+                  <Tooltip title="Editar marcador">
+                    <IconButton size="small" onClick={() => setEditing(g)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={g.externalGameId ? 'Sincronizar marcador en vivo' : 'Sin fixture externo'}>
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={!g.externalGameId || sync.isPending}
+                        onClick={() => onSync(g)}
+                      >
+                        <SyncIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}

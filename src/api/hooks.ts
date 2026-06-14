@@ -69,8 +69,8 @@ export function usePaymentMethods() {
 export function useCreatePaymentMethod() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (name: string) =>
-      (await api.post<PaymentMethod>('/admin/payment-methods', { name })).data,
+    mutationFn: async (label: string) =>
+      (await api.post<PaymentMethod>('/admin/payment-methods', { label })).data,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-methods'] }),
   })
 }

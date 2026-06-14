@@ -43,8 +43,15 @@ export function UsersPage() {
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
 
   return (
-    <Stack spacing={2}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <Stack spacing={2} sx={{ height: '100%' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0,
+        }}
+      >
         <Typography variant="h5">Usuarios ({data?.length ?? 0})</Typography>
         <TextField
           size="small"
@@ -54,8 +61,8 @@ export function UsersPage() {
           sx={{ width: 320 }}
         />
       </Box>
-      <TableContainer component={Paper}>
-        <Table size="small">
+      <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>

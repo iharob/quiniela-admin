@@ -66,6 +66,7 @@ export type PaymentStatus = 'UNPAID' | 'PENDING' | 'VERIFIED'
 export interface PaymentMethod {
   paymentMethodId: number
   name: string
+  label: string
 }
 
 export interface UserPayment {

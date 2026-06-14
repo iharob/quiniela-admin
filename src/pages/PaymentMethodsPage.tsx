@@ -14,6 +14,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -24,7 +25,7 @@ export function PaymentMethodsPage() {
   const { data, isLoading, error } = usePaymentMethods()
   const create = useCreatePaymentMethod()
   const remove = useDeletePaymentMethod()
-  const [name, setName] = useState('')
+  const [label, setLabel] = useState('')
 
   if (isLoading) {
     return (
@@ -37,20 +38,20 @@ export function PaymentMethodsPage() {
 
   const onAdd = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!name.trim()) return
-    create.mutate(name.trim().toUpperCase(), { onSuccess: () => setName('') })
+    if (!label.trim()) return
+    create.mutate(label.trim(), { onSuccess: () => setLabel('') })
   }
 
   return (
-    <Stack spacing={2} sx={{ maxWidth: 560 }}>
+    <Stack spacing={2} sx={{ height: '100%', maxWidth: 640 }}>
       <Typography variant="h5">Métodos de pago</Typography>
 
-      <Box component="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 1 }}>
+      <Box component="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
         <TextField
           size="small"
-          label="Nuevo método"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          label="Nombre del método (p. ej. Pago Móvil)"
+          value={label}
+          onChange={(e) => setLabel(e.target.value)}
           sx={{ flexGrow: 1 }}
         />
         <Button type="submit" variant="contained" disabled={create.isPending}>
@@ -59,8 +60,8 @@ export function PaymentMethodsPage() {
       </Box>
       {create.isError && <Alert severity="error">{extractError(create.error)}</Alert>}
 
-      <TableContainer component={Paper}>
-        <Table size="small">
+      <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
               <TableCell>ID</TableCell>
@@ -72,16 +73,25 @@ export function PaymentMethodsPage() {
             {data?.map((m) => (
               <TableRow key={m.paymentMethodId} hover>
                 <TableCell>{m.paymentMethodId}</TableCell>
-                <TableCell>{m.name}</TableCell>
+                <TableCell>
+                  {m.label}
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                    {m.name}
+                  </Typography>
+                </TableCell>
                 <TableCell align="right">
-                  <IconButton
-                    size="small"
-                    color="error"
-                    disabled={remove.isPending}
-                    onClick={() => remove.mutate(m.paymentMethodId)}
-                  >
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
+                  <Tooltip title="Eliminar">
+                    <span>
+                      <IconButton
+                        size="small"
+                        color="error"
+                        disabled={remove.isPending}
+                        onClick={() => remove.mutate(m.paymentMethodId)}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </TableCell>
               </TableRow>
             ))}

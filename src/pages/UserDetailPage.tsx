@@ -46,8 +46,8 @@ export function UserDetailPage() {
   const user = users?.find((u) => u.userId === userId)
 
   return (
-    <Stack spacing={2}>
-      <Box>
+    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto' }}>
+      <Box sx={{ flexShrink: 0 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/users')}>
           Volver
         </Button>
@@ -275,14 +275,14 @@ function PaymentEditor({ userId }: { userId: number }) {
           renderValue={(selected) =>
             (methods ?? [])
               .filter((m) => (selected as number[]).includes(m.paymentMethodId))
-              .map((m) => m.name)
+              .map((m) => m.label)
               .join(', ')
           }
         >
           {(methods ?? []).map((m) => (
             <MenuItem key={m.paymentMethodId} value={m.paymentMethodId}>
               <Checkbox checked={methodIds.includes(m.paymentMethodId)} />
-              <ListItemText primary={m.name} />
+              <ListItemText primary={m.label} />
             </MenuItem>
           ))}
         </Select>

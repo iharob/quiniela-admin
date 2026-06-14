@@ -51,10 +51,23 @@ location /admin/ {
 
 ## Backend one-off: seed the administrator
 
-In `../quiniela-rest-api`, after applying the schema/migration:
+Provisions `iharob@gmail.com` with the `ADMINISTRATOR` role and **no** password. Both
+methods are idempotent; pick the one that fits the environment.
+
+**Local / dev** (Go toolchain + DB access):
 
 ```bash
-go run ./cmd/seed-admin           # provisions iharob@gmail.com with role ADMINISTRATOR (no password)
+cd ../quiniela-rest-api && go run ./cmd/seed-admin
+```
+
+**Production** (single distroless binary — no Go toolchain; run the equivalent SQL inside the
+postgres container, where the deploy already ships `model/seed-admin.sql`):
+
+```bash
+cd /opt/quiniela
+set -a; . ./.env; set +a
+docker compose exec -T postgres \
+  psql -v ON_ERROR_STOP=1 -U "$DATABASE_USER" -d "$DATABASE_NAME" < model/seed-admin.sql
 ```
 
 Then open `/admin`, use **Forgot password** to receive the code by email, and set the password.
