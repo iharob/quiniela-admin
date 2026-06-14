@@ -77,7 +77,10 @@ export function Layout(): JSX.Element {
     // Fill the viewport and let the content region (not the page) scroll, so
     // tables keep their headers/toolbars on screen.
     <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-      <AppBar position="static" sx={{ flexShrink: 0 }}>
+      <AppBar
+        position="static"
+        sx={{ flexShrink: 0, ...(mode === 'dark' ? { bgcolor: '#1e57b5' } : {}) }}
+      >
         <Toolbar>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Quiniela · Administración
@@ -137,7 +140,7 @@ export function Layout(): JSX.Element {
           value={current === -1 ? false : current}
           textColor="inherit"
           indicatorColor="secondary"
-          sx={{ bgcolor: 'primary.dark' }}
+          sx={{ bgcolor: mode === 'dark' ? '#163f86' : 'primary.dark' }}
         >
           {TABS.map((t) => (
             <Tab key={t.path} label={t.label} onClick={() => navigate(t.path)} />

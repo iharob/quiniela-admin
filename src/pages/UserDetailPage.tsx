@@ -47,7 +47,7 @@ export function UserDetailPage(): JSX.Element {
   const user = users?.find((u) => u.userId === userId)
 
   return (
-    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto' }}>
+    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <Box sx={{ flexShrink: 0 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/users')}>
           Volver
