@@ -28,9 +28,9 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
+import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import {
@@ -44,6 +44,7 @@ import {
 } from '../api/hooks'
 import { useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
+import { SectionTitle } from '../components/SectionTitle'
 import type { Currency, LinkedPaymentStatus, Payment } from '../api/types'
 
 function formatAmount(p: Payment): string {
@@ -56,6 +57,11 @@ export function PaymentsPage(): JSX.Element {
   const del = useDeletePayment()
   const update = useUpdatePayment()
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState<Payment | null>(null)
+  const closeDialog = (): void => {
+    setAdding(false)
+    setEditing(null)
+  }
 
   if (isLoading) {
     return (
@@ -84,7 +90,7 @@ export function PaymentsPage(): JSX.Element {
   return (
     <Stack spacing={2} sx={{ height: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-        <Typography variant="h5">Pagos ({data?.length ?? 0})</Typography>
+        <SectionTitle>Pagos ({data?.length ?? 0})</SectionTitle>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
           Nuevo pago
         </Button>
@@ -131,6 +137,11 @@ export function PaymentsPage(): JSX.Element {
                   )}
                 </TableCell>
                 <TableCell align="right">
+                  <Tooltip title="Editar">
+                    <IconButton size="small" onClick={() => setEditing(p)}>
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                   {p.status !== 'VERIFIED' && (
                     <Tooltip title="Marcar como verificado">
                       <span>
@@ -164,26 +175,38 @@ export function PaymentsPage(): JSX.Element {
         </Table>
       </TableContainer>
 
-      {adding && <PaymentDialog onClose={() => setAdding(false)} />}
+      {(adding || editing !== null) && <PaymentDialog payment={editing} onClose={closeDialog} />}
     </Stack>
   )
 }
 
-function PaymentDialog({ onClose }: { readonly onClose: () => void }): JSX.Element {
+function PaymentDialog({
+  payment,
+  onClose,
+}: {
+  readonly payment: Payment | null
+  readonly onClose: () => void
+}): JSX.Element {
   const { data: users } = useUsers()
   const { data: methods } = usePaymentMethods()
   const create = useCreatePayment()
+  const update = useUpdatePayment()
   const uploadProof = useUploadPaymentProof()
+  const isEdit = payment !== null
 
-  const [payerUserId, setPayerUserId] = useState<number | ''>('')
-  const [beneficiaryIds, setBeneficiaryIds] = useState<number[]>([])
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<Currency>('USD')
-  const [methodId, setMethodId] = useState<number | ''>('')
-  const [reference, setReference] = useState('')
-  const [notes, setNotes] = useState('')
-  const [paidAt, setPaidAt] = useState('')
-  const [status, setStatus] = useState<LinkedPaymentStatus>('PENDING')
+  // The dialog is mounted fresh on each open, so initialising from the payment
+  // prop (edit) or empty (create) here needs no effect.
+  const [payerUserId, setPayerUserId] = useState<number | ''>(payment?.payerUserId ?? '')
+  const [beneficiaryIds, setBeneficiaryIds] = useState<number[]>(
+    payment ? payment.beneficiaries.map((b) => b.userId) : [],
+  )
+  const [amount, setAmount] = useState(payment?.amount != null ? String(payment.amount) : '')
+  const [currency, setCurrency] = useState<Currency>(payment?.currency ?? 'USD')
+  const [methodId, setMethodId] = useState<number | ''>(payment?.paymentMethodId ?? '')
+  const [reference, setReference] = useState(payment?.reference ?? '')
+  const [notes, setNotes] = useState(payment?.notes ?? '')
+  const [paidAt, setPaidAt] = useState(payment?.paidAt ? payment.paidAt.slice(0, 10) : '')
+  const [status, setStatus] = useState<LinkedPaymentStatus>(payment?.status ?? 'PENDING')
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState('')
 
@@ -206,9 +229,13 @@ function PaymentDialog({ onClose }: { readonly onClose: () => void }): JSX.Eleme
       beneficiaryUserIds: beneficiaryIds.length > 0 ? beneficiaryIds : [payerUserId],
     }
     try {
-      const created = await create.mutateAsync(body)
+      const saved =
+        payment !== null
+          ? await update.mutateAsync({ paymentId: payment.paymentId, body })
+          : await create.mutateAsync(body)
+      // Uploading a new file replaces the proof; leaving it empty keeps any existing one.
       if (file) {
-        await uploadProof.mutateAsync({ paymentId: created.paymentId, file })
+        await uploadProof.mutateAsync({ paymentId: saved.paymentId, file })
       }
       onClose()
     } catch (err) {
@@ -220,7 +247,7 @@ function PaymentDialog({ onClose }: { readonly onClose: () => void }): JSX.Eleme
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>Nuevo pago</DialogTitle>
+      <DialogTitle>{isEdit ? 'Editar pago' : 'Nuevo pago'}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -340,7 +367,11 @@ function PaymentDialog({ onClose }: { readonly onClose: () => void }): JSX.Eleme
           </FormControl>
 
           <Button component="label" variant="outlined">
-            {file ? `Comprobante: ${file.name}` : 'Adjuntar comprobante (opcional)'}
+            {file
+              ? `Comprobante: ${file.name}`
+              : isEdit && payment?.proofImageUrl
+                ? 'Reemplazar comprobante (opcional)'
+                : 'Adjuntar comprobante (opcional)'}
             <input
               type="file"
               accept="image/*"
@@ -355,7 +386,7 @@ function PaymentDialog({ onClose }: { readonly onClose: () => void }): JSX.Eleme
         <Button
           variant="contained"
           onClick={onSubmit}
-          disabled={create.isPending || uploadProof.isPending}
+          disabled={create.isPending || update.isPending || uploadProof.isPending}
         >
           Guardar
         </Button>

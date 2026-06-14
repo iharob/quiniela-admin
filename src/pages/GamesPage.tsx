@@ -20,12 +20,12 @@ import {
   TableRow,
   TextField,
   Tooltip,
-  Typography,
 } from '@mui/material'
 import SyncIcon from '@mui/icons-material/Sync'
 import EditIcon from '@mui/icons-material/Edit'
 import { useGames, useSetGameScore, useSyncGameScore } from '../api/hooks'
 import { extractError } from '../api/client'
+import { SectionTitle } from '../components/SectionTitle'
 import type { AdminGame } from '../api/types'
 
 export function GamesPage(): JSX.Element {
@@ -53,9 +53,7 @@ export function GamesPage(): JSX.Element {
 
   return (
     <Stack spacing={2} sx={{ height: '100%' }}>
-      <Typography variant="h5" sx={{ flexShrink: 0 }}>
-        Partidos ({data?.length ?? 0})
-      </Typography>
+      <SectionTitle>Partidos ({data?.length ?? 0})</SectionTitle>
       <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <Table size="small" stickyHeader>
           <TableHead>

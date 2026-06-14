@@ -20,6 +20,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete'
 import { useCreatePaymentMethod, useDeletePaymentMethod, usePaymentMethods } from '../api/hooks'
 import { extractError } from '../api/client'
+import { SectionTitle } from '../components/SectionTitle'
 
 export function PaymentMethodsPage(): JSX.Element {
   const { data, isLoading, error } = usePaymentMethods()
@@ -44,7 +45,7 @@ export function PaymentMethodsPage(): JSX.Element {
 
   return (
     <Stack spacing={2} sx={{ height: '100%', maxWidth: 640 }}>
-      <Typography variant="h5">Métodos de pago</Typography>
+      <SectionTitle>Métodos de pago</SectionTitle>
 
       <Box component="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>
         <TextField

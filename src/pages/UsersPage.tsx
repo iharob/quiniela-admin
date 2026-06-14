@@ -3,7 +3,11 @@ import {
   Alert,
   Box,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
   Paper,
+  Select,
   Stack,
   Table,
   TableBody,
@@ -12,26 +16,107 @@ import {
   TableHead,
   TableRow,
   TextField,
-  Typography,
 } from '@mui/material'
 import { useNavigate } from 'react-router-dom'
-import { useUsers } from '../api/hooks'
+import { usePaymentMethods, useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { ConsistencyChip, LoginTypeChip, PaymentChip } from '../components/chips'
+import { SectionTitle } from '../components/SectionTitle'
+
+interface FilterOption {
+  readonly value: string
+  readonly label: string
+}
+
+const LOGIN_TYPE_OPTIONS: readonly FilterOption[] = [
+  { value: 'google', label: 'Google' },
+  { value: 'email', label: 'Email' },
+  { value: 'both', label: 'Ambos' },
+  { value: 'none', label: 'Ninguno' },
+]
+
+const PREDICTION_OPTIONS: readonly FilterOption[] = [
+  { value: 'yes', label: 'Con predicciones' },
+  { value: 'no', label: 'Sin predicciones' },
+]
+
+const CONSISTENCY_OPTIONS: readonly FilterOption[] = [
+  { value: 'CONSISTENT', label: 'Consistente' },
+  { value: 'INCONSISTENT', label: 'Inconsistente' },
+  { value: 'NO_PREDICTIONS', label: 'Sin predicciones' },
+]
+
+const PAYMENT_STATUS_OPTIONS: readonly FilterOption[] = [
+  { value: 'VERIFIED', label: 'Verificado' },
+  { value: 'PENDING', label: 'Pendiente' },
+  { value: 'UNPAID', label: 'Sin pagar' },
+]
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  readonly label: string
+  readonly value: string
+  readonly onChange: (value: string) => void
+  readonly options: readonly FilterOption[]
+}): JSX.Element {
+  return (
+    <FormControl size="small" sx={{ minWidth: 160 }}>
+      <InputLabel sx={{ fontSize: 14 }}>{label}</InputLabel>
+      <Select
+        label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        sx={{ fontSize: 14 }}
+      >
+        <MenuItem value="all" sx={{ fontSize: 14 }}>
+          Todos
+        </MenuItem>
+        {options.map((o) => (
+          <MenuItem key={o.value} value={o.value} sx={{ fontSize: 14 }}>
+            {o.label}
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  )
+}
 
 export function UsersPage(): JSX.Element {
   const navigate = useNavigate()
   const { data, isLoading, error } = useUsers()
-  const [filter, setFilter] = useState('')
+  const { data: methods } = usePaymentMethods()
+
+  const [query, setQuery] = useState('')
+  const [loginType, setLoginType] = useState('all')
+  const [predictions, setPredictions] = useState('all')
+  const [consistency, setConsistency] = useState('all')
+  const [paymentStatus, setPaymentStatus] = useState('all')
+  const [method, setMethod] = useState('all')
 
   const filtered = useMemo(() => {
     if (!data) return []
-    const q = filter.trim().toLowerCase()
-    if (!q) return data
-    return data.filter(
-      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
-    )
-  }, [data, filter])
+    const q = query.trim().toLowerCase()
+    return data.filter((u) => {
+      if (q && !(u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q))) {
+        return false
+      }
+      if (loginType !== 'all' && u.loginType !== loginType) return false
+      if (predictions !== 'all' && u.hasPredictions !== (predictions === 'yes')) return false
+      if (consistency !== 'all' && u.consistency !== consistency) return false
+      if (paymentStatus !== 'all' && u.paymentStatus !== paymentStatus) return false
+      if (method !== 'all' && !u.paymentMethods.includes(method)) return false
+      return true
+    })
+  }, [data, query, loginType, predictions, consistency, paymentStatus, method])
+
+  const methodOptions = useMemo<readonly FilterOption[]>(
+    () => (methods ?? []).map((m) => ({ value: m.label, label: m.label })),
+    [methods],
+  )
 
   if (isLoading) {
     return (
@@ -44,22 +129,22 @@ export function UsersPage(): JSX.Element {
 
   return (
     <Stack spacing={2} sx={{ height: '100%' }}>
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <Typography variant="h5">Usuarios ({data?.length ?? 0})</Typography>
-        <TextField
-          size="small"
-          placeholder="Buscar por nombre o correo"
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          sx={{ width: 320 }}
-        />
+      <Box sx={{ flexShrink: 0 }}>
+        <SectionTitle>Usuarios ({filtered.length})</SectionTitle>
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mt: 1 }}>
+          <TextField
+            size="small"
+            placeholder="Buscar por nombre o correo"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            sx={{ width: 260, '& .MuiInputBase-input': { fontSize: 14 } }}
+          />
+          <FilterSelect label="Acceso" value={loginType} onChange={setLoginType} options={LOGIN_TYPE_OPTIONS} />
+          <FilterSelect label="Predicciones" value={predictions} onChange={setPredictions} options={PREDICTION_OPTIONS} />
+          <FilterSelect label="Consistencia" value={consistency} onChange={setConsistency} options={CONSISTENCY_OPTIONS} />
+          <FilterSelect label="Pago" value={paymentStatus} onChange={setPaymentStatus} options={PAYMENT_STATUS_OPTIONS} />
+          <FilterSelect label="Método" value={method} onChange={setMethod} options={methodOptions} />
+        </Box>
       </Box>
       <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <Table size="small" stickyHeader>
