@@ -15,6 +15,7 @@ import type {
   LinkedPaymentStatus,
   Payment,
   PaymentMethod,
+  Settings,
   UserPayment,
 } from './types'
 
@@ -231,5 +232,23 @@ export function useUploadPaymentProof(): UseMutationResult<
       return (await api.post<Payment>(`/admin/payments/${paymentId}/proof`, form)).data
     },
     onSuccess: (): void => invalidatePayments(qc),
+  })
+}
+
+export function useSettings(): UseQueryResult<Settings, Error> {
+  return useQuery({
+    queryKey: ['settings'],
+    queryFn: async (): Promise<Settings> => (await api.get<Settings>('/admin/settings')).data,
+  })
+}
+
+export function useUpdateSettings(): UseMutationResult<Settings, Error, Settings> {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: Settings): Promise<Settings> =>
+      (await api.put<Settings>('/admin/settings', body)).data,
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['settings'] })
+    },
   })
 }

@@ -23,7 +23,7 @@ export function ResetPasswordPage(): JSX.Element {
         new_password: newPassword,
       })
       setToken(data.token)
-      navigate('/users', { replace: true })
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(extractError(err))
     } finally {

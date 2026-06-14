@@ -17,14 +17,17 @@ import {
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
 import SettingsIcon from '@mui/icons-material/Settings'
+import TuneIcon from '@mui/icons-material/Tune'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { clearToken, getToken } from '../api/client'
 import { useSession } from '../api/hooks'
 import { useColorMode } from '../colorMode'
+import { SettingsDialog } from './SettingsDialog'
 
 const TABS = [
+  { label: 'Resumen', path: '/dashboard' },
   { label: 'Usuarios', path: '/users' },
   { label: 'Partidos', path: '/games' },
   { label: 'Pagos', path: '/payments' },
@@ -59,6 +62,7 @@ export function Layout(): JSX.Element {
   const { data: session } = useSession(Boolean(getToken()))
   const { mode, toggle } = useColorMode()
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Highlight the tab matching the current top-level section.
   const current = TABS.findIndex((t) => location.pathname.startsWith(t.path))
@@ -129,7 +133,19 @@ export function Layout(): JSX.Element {
                 </ListItemIcon>
                 <ListItemText>{mode === 'dark' ? 'Tema claro' : 'Tema oscuro'}</ListItemText>
               </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setSettingsOpen(true)
+                  setAnchorEl(null)
+                }}
+              >
+                <ListItemIcon>
+                  <TuneIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText>Ajustes</ListItemText>
+              </MenuItem>
             </Menu>
+            {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
 
             <Button color="inherit" startIcon={<LogoutIcon />} onClick={onLogout}>
               Salir

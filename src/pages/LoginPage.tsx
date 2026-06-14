@@ -18,7 +18,7 @@ export function LoginPage(): JSX.Element {
     try {
       const { data } = await api.post<{ token: string }>('/admin/auth/login', { email, password })
       setToken(data.token)
-      navigate('/users', { replace: true })
+      navigate('/dashboard', { replace: true })
     } catch (err) {
       setError(extractError(err))
     } finally {

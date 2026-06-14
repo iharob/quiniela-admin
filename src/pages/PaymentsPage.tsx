@@ -309,6 +309,7 @@ function PaymentDialog({
               >
                 <MenuItem value="USD">USD</MenuItem>
                 <MenuItem value="VES">VES</MenuItem>
+                <MenuItem value="EUR">EUR</MenuItem>
               </Select>
             </FormControl>
           </Box>

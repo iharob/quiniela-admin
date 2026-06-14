@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { Layout } from './components/Layout'
 import { RequireAuth } from './auth/RequireAuth'
+import { DashboardPage } from './pages/DashboardPage'
 import { LoginPage } from './pages/LoginPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
@@ -23,13 +24,14 @@ export function App(): JSX.Element {
           </RequireAuth>
         }
       >
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:userId" element={<UserDetailPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/payment-methods" element={<PaymentMethodsPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/users" replace />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
 }

@@ -102,7 +102,11 @@ export interface AdminSession {
   readonly roles: readonly string[]
 }
 
-export type Currency = 'USD' | 'VES'
+export type Currency = 'USD' | 'VES' | 'EUR'
+
+export interface Settings {
+  readonly entryFeeUsd: number
+}
 
 export type LinkedPaymentStatus = 'PENDING' | 'VERIFIED'
 

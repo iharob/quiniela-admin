@@ -29,11 +29,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   usePaymentMethods,
+  usePayments,
+  useUpdatePayment,
   useUpsertUserPayment,
   useUserConsistency,
   useUserPayment,
   useUserPayments,
   useUsers,
+  type PaymentRequestBody,
 } from '../api/hooks'
 import { extractError } from '../api/client'
 import type { PaymentStatus } from '../api/types'
@@ -220,12 +223,38 @@ function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
   const { data: payment, isLoading } = useUserPayment(userId)
   const { data: methods } = usePaymentMethods()
   const { data: payments } = useUserPayments(userId)
+  const { data: allPayments } = usePayments()
   const upsert = useUpsertUserPayment(userId)
+  const updatePayment = useUpdatePayment()
 
   const [contact, setContact] = useState('')
   const [notes, setNotes] = useState('')
   const [methodIds, setMethodIds] = useState<number[]>([])
   const [saved, setSaved] = useState(false)
+  const [linkId, setLinkId] = useState<number | ''>('')
+
+  // Payments that don't already cover this user — candidates to link them to.
+  const candidates = (allPayments ?? []).filter(
+    (p) => !p.beneficiaries.some((b) => b.userId === userId),
+  )
+
+  const onLink = (): void => {
+    if (linkId === '') return
+    const p = (allPayments ?? []).find((x) => x.paymentId === linkId)
+    if (!p) return
+    const body: PaymentRequestBody = {
+      payerUserId: p.payerUserId,
+      paymentMethodId: p.paymentMethodId ?? null,
+      amount: p.amount ?? null,
+      currency: p.currency,
+      reference: p.reference,
+      notes: p.notes,
+      paidAt: p.paidAt ?? null,
+      status: p.status,
+      beneficiaryUserIds: [...p.beneficiaries.map((b) => b.userId), userId],
+    }
+    updatePayment.mutate({ paymentId: p.paymentId, body }, { onSuccess: () => setLinkId('') })
+  }
 
   useEffect(() => {
     if (payment) {
@@ -328,6 +357,35 @@ function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
           Sin pagos registrados.
         </Typography>
       )}
+
+      <Divider />
+      <Typography variant="subtitle2">Marcar como pagado con un pago existente</Typography>
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <FormControl size="small" sx={{ flex: 1 }}>
+          <InputLabel>Pago</InputLabel>
+          <Select
+            label="Pago"
+            value={linkId}
+            onChange={(e) => setLinkId(e.target.value === '' ? '' : Number(e.target.value))}
+          >
+            {candidates.map((p) => (
+              <MenuItem key={p.paymentId} value={p.paymentId}>
+                #{p.paymentId} · {p.payerName} ·{' '}
+                {p.amount != null ? `${p.amount.toFixed(2)} ${p.currency}` : 's/monto'} ·{' '}
+                {p.status === 'VERIFIED' ? 'Verificado' : 'Pendiente'}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <Button
+          variant="outlined"
+          onClick={onLink}
+          disabled={linkId === '' || updatePayment.isPending}
+        >
+          Vincular
+        </Button>
+      </Box>
+      {updatePayment.isError && <Alert severity="error">{extractError(updatePayment.error)}</Alert>}
     </Stack>
   )
 }
