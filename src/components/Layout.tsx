@@ -7,6 +7,7 @@ import { useSession } from '../api/hooks'
 const TABS = [
   { label: 'Usuarios', path: '/users' },
   { label: 'Partidos', path: '/games' },
+  { label: 'Pagos', path: '/payments' },
   { label: 'Métodos de pago', path: '/payment-methods' },
 ] as const
 

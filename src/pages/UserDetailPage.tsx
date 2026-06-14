@@ -32,11 +32,12 @@ import {
   useUpsertUserPayment,
   useUserConsistency,
   useUserPayment,
+  useUserPayments,
   useUsers,
 } from '../api/hooks'
 import { extractError } from '../api/client'
 import type { PaymentStatus } from '../api/types'
-import { ConsistencyChip } from '../components/chips'
+import { ConsistencyChip, PaymentChip } from '../components/chips'
 
 export function UserDetailPage(): JSX.Element {
   const { userId: userIdParam } = useParams()
@@ -215,14 +216,12 @@ function ConsistencyPanel({ userId }: { readonly userId: number }): JSX.Element 
   )
 }
 
-const STATUSES: PaymentStatus[] = ['UNPAID', 'PENDING', 'VERIFIED']
-
 function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
   const { data: payment, isLoading } = useUserPayment(userId)
   const { data: methods } = usePaymentMethods()
+  const { data: payments } = useUserPayments(userId)
   const upsert = useUpsertUserPayment(userId)
 
-  const [status, setStatus] = useState<PaymentStatus>('UNPAID')
   const [contact, setContact] = useState('')
   const [notes, setNotes] = useState('')
   const [methodIds, setMethodIds] = useState<number[]>([])
@@ -230,7 +229,6 @@ function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
 
   useEffect(() => {
     if (payment) {
-      setStatus(payment.status)
       setContact(payment.contact)
       setNotes(payment.notes)
       setMethodIds([...payment.methodIds])
@@ -241,28 +239,20 @@ function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
 
   const onSave = (): void => {
     setSaved(false)
-    upsert.mutate(
-      { status, contact, notes, methodIds },
-      { onSuccess: () => setSaved(true) },
-    )
+    upsert.mutate({ contact, notes, methodIds }, { onSuccess: () => setSaved(true) })
   }
 
   return (
     <Stack spacing={2}>
-      <FormControl size="small" fullWidth>
-        <InputLabel>Estado</InputLabel>
-        <Select
-          label="Estado"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as PaymentStatus)}
-        >
-          {STATUSES.map((s) => (
-            <MenuItem key={s} value={s}>
-              {s}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          Estado:
+        </Typography>
+        <PaymentChip status={(payment?.status ?? 'UNPAID') as PaymentStatus} />
+        <Typography variant="caption" color="text.secondary">
+          (derivado de los pagos)
+        </Typography>
+      </Box>
 
       <FormControl size="small" fullWidth>
         <InputLabel>Métodos de pago</InputLabel>
@@ -313,8 +303,31 @@ function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
       {upsert.isError && <Alert severity="error">{extractError(upsert.error)}</Alert>}
       {saved && <Alert severity="success">Guardado.</Alert>}
       <Button variant="contained" onClick={onSave} disabled={upsert.isPending}>
-        Guardar pago
+        Guardar datos de pago
       </Button>
+
+      <Divider />
+      <Typography variant="subtitle2">Pagos relacionados</Typography>
+      {payments && payments.length > 0 ? (
+        <Stack spacing={0.5}>
+          {payments.map((p) => (
+            <Box
+              key={p.paymentId}
+              sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'space-between' }}
+            >
+              <Typography variant="body2">
+                {p.payerName} → {p.beneficiaries.map((b) => b.name).join(', ')}
+                {p.amount != null && ` · ${p.amount.toFixed(2)} ${p.currency}`}
+              </Typography>
+              <PaymentChip status={p.status} />
+            </Box>
+          ))}
+        </Stack>
+      ) : (
+        <Typography variant="body2" color="text.secondary">
+          Sin pagos registrados.
+        </Typography>
+      )}
     </Stack>
   )
 }

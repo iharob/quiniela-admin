@@ -7,6 +7,7 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { UsersPage } from './pages/UsersPage'
 import { UserDetailPage } from './pages/UserDetailPage'
 import { GamesPage } from './pages/GamesPage'
+import { PaymentsPage } from './pages/PaymentsPage'
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage'
 
 export function App(): JSX.Element {
@@ -25,6 +26,7 @@ export function App(): JSX.Element {
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:userId" element={<UserDetailPage />} />
         <Route path="/games" element={<GamesPage />} />
+        <Route path="/payments" element={<PaymentsPage />} />
         <Route path="/payment-methods" element={<PaymentMethodsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/users" replace />} />

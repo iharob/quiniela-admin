@@ -101,3 +101,30 @@ export interface AdminSession {
   readonly name: string
   readonly roles: readonly string[]
 }
+
+export type Currency = 'USD' | 'VES'
+
+export type LinkedPaymentStatus = 'PENDING' | 'VERIFIED'
+
+export interface PaymentBeneficiary {
+  readonly userId: number
+  readonly name: string
+}
+
+export interface Payment {
+  readonly paymentId: number
+  readonly payerUserId: number
+  readonly payerName: string
+  readonly paymentMethodId?: number
+  readonly paymentMethodLabel: string
+  readonly amount?: number
+  readonly currency: Currency
+  readonly reference: string
+  readonly proofImageUrl: string
+  readonly notes: string
+  readonly paidAt?: string
+  readonly status: LinkedPaymentStatus
+  readonly verifiedAt?: string
+  readonly createdAt: string
+  readonly beneficiaries: readonly PaymentBeneficiary[]
+}
