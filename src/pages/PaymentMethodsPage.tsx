@@ -21,7 +21,7 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { useCreatePaymentMethod, useDeletePaymentMethod, usePaymentMethods } from '../api/hooks'
 import { extractError } from '../api/client'
 
-export function PaymentMethodsPage() {
+export function PaymentMethodsPage(): JSX.Element {
   const { data, isLoading, error } = usePaymentMethods()
   const create = useCreatePaymentMethod()
   const remove = useDeletePaymentMethod()
@@ -36,7 +36,7 @@ export function PaymentMethodsPage() {
   }
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
 
-  const onAdd = (e: React.FormEvent) => {
+  const onAdd = (e: React.FormEvent): void => {
     e.preventDefault()
     if (!label.trim()) return
     create.mutate(label.trim(), { onSuccess: () => setLabel('') })

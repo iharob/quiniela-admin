@@ -19,7 +19,7 @@ import { useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { ConsistencyChip, LoginTypeChip, PaymentChip } from '../components/chips'
 
-export function UsersPage() {
+export function UsersPage(): JSX.Element {
   const navigate = useNavigate()
   const { data, isLoading, error } = useUsers()
   const [filter, setFilter] = useState('')

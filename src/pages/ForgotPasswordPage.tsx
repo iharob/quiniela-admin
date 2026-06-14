@@ -4,13 +4,13 @@ import { Link as RouterLink } from 'react-router-dom'
 import { api, extractError } from '../api/client'
 import { AuthShell } from './AuthShell'
 
-export function ForgotPasswordPage() {
+export function ForgotPasswordPage(): JSX.Element {
   const [email, setEmail] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setError('')
     setMessage('')

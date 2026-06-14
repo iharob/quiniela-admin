@@ -1,4 +1,7 @@
-import axios from 'axios'
+import axios, {
+  type AxiosResponse,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 
 const TOKEN_KEY = 'quiniela_admin_token'
 
@@ -19,7 +22,7 @@ const baseURL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 export const api = axios.create({ baseURL })
 
 // Attach the admin bearer token to every request.
-api.interceptors.request.use((config) => {
+api.interceptors.request.use((config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
   const token = getToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -31,15 +34,17 @@ api.interceptors.request.use((config) => {
 // bounce to the login screen. The auth endpoints themselves are exempt so a
 // failed login shows its own error instead of a redirect loop.
 api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error?.response?.status
-    const url: string = error?.config?.url ?? ''
-    const isAuthCall = url.includes('/admin/auth/')
-    if ((status === 401 || status === 403) && !isAuthCall) {
-      clearToken()
-      if (window.location.pathname !== '/admin/login') {
-        window.location.assign('/admin/login')
+  (response: AxiosResponse): AxiosResponse => response,
+  (error: unknown): Promise<never> => {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status
+      const url = error.config?.url ?? ''
+      const isAuthCall = url.includes('/admin/auth/')
+      if ((status === 401 || status === 403) && !isAuthCall) {
+        clearToken()
+        if (window.location.pathname !== '/admin/login') {
+          window.location.assign('/admin/login')
+        }
       }
     }
     return Promise.reject(error)

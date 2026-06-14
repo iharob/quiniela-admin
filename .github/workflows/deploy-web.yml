@@ -21,6 +21,12 @@ jobs:
   deploy:
     name: Build & deploy admin to iaales.lat/admin
     runs-on: ubuntu-latest
+    # HAS_KEY is true only when the deploy secret is configured. The build/lint
+    # steps always run (so type/lint regressions fail the run); the SSH deploy
+    # steps are skipped until SSH_PRIVATE_KEY is set, so a not-yet-wired repo
+    # gets a green "built" run instead of a spurious deploy failure.
+    env:
+      HAS_KEY: ${{ secrets.SSH_PRIVATE_KEY != '' }}
 
     steps:
       - name: Checkout
@@ -35,6 +41,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint & type-check
+        run: npm run lint
+
       - name: Build (release)
         env:
           # The API is served from the same host. Override via the
@@ -43,6 +52,7 @@ jobs:
         run: npm run build
 
       - name: Set up SSH
+        if: env.HAS_KEY == 'true'
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
@@ -51,6 +61,7 @@ jobs:
           ssh-keyscan -H "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy to server
+        if: env.HAS_KEY == 'true'
         run: |
           SSH_USER="${{ secrets.SSH_USER }}"
           SSH_HOST="${{ secrets.SSH_HOST }}"

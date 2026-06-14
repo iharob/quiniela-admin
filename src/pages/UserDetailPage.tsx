@@ -38,7 +38,7 @@ import { extractError } from '../api/client'
 import type { PaymentStatus } from '../api/types'
 import { ConsistencyChip } from '../components/chips'
 
-export function UserDetailPage() {
+export function UserDetailPage(): JSX.Element {
   const { userId: userIdParam } = useParams()
   const userId = Number(userIdParam)
   const navigate = useNavigate()
@@ -95,7 +95,7 @@ export function UserDetailPage() {
   )
 }
 
-function Field({ label, value }: { label: string; value: string }) {
+function Field({ label, value }: { readonly label: string; readonly value: string }): JSX.Element {
   return (
     <Box sx={{ display: 'flex', py: 0.5 }}>
       <Typography variant="body2" sx={{ width: 160, color: 'text.secondary' }}>
@@ -106,7 +106,7 @@ function Field({ label, value }: { label: string; value: string }) {
   )
 }
 
-function ConsistencyPanel({ userId }: { userId: number }) {
+function ConsistencyPanel({ userId }: { readonly userId: number }): JSX.Element | null {
   const { data, isLoading, error } = useUserConsistency(userId)
   if (isLoading) return <CircularProgress size={24} />
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
@@ -217,7 +217,7 @@ function ConsistencyPanel({ userId }: { userId: number }) {
 
 const STATUSES: PaymentStatus[] = ['UNPAID', 'PENDING', 'VERIFIED']
 
-function PaymentEditor({ userId }: { userId: number }) {
+function PaymentEditor({ userId }: { readonly userId: number }): JSX.Element {
   const { data: payment, isLoading } = useUserPayment(userId)
   const { data: methods } = usePaymentMethods()
   const upsert = useUpsertUserPayment(userId)
@@ -233,13 +233,13 @@ function PaymentEditor({ userId }: { userId: number }) {
       setStatus(payment.status)
       setContact(payment.contact)
       setNotes(payment.notes)
-      setMethodIds(payment.methodIds)
+      setMethodIds([...payment.methodIds])
     }
   }, [payment])
 
   if (isLoading) return <CircularProgress size={24} />
 
-  const onSave = () => {
+  const onSave = (): void => {
     setSaved(false)
     upsert.mutate(
       { status, contact, notes, methodIds },

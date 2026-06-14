@@ -1,4 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { api } from './client'
 import type {
   AdminGame,
@@ -10,104 +16,134 @@ import type {
 } from './types'
 
 export interface UserPaymentRequestBody {
-  status: string
-  contact: string
-  notes: string
-  methodIds: number[]
+  readonly status: string
+  readonly contact: string
+  readonly notes: string
+  readonly methodIds: readonly number[]
 }
 
-export function useSession(enabled: boolean) {
+export interface SetGameScoreVars {
+  readonly gameId: number
+  readonly team1Score: number
+  readonly team2Score: number
+  readonly winner: string
+}
+
+export interface SyncResult {
+  readonly applied: boolean
+  readonly team1Score?: number
+  readonly team2Score?: number
+  readonly message?: string
+}
+
+export function useSession(enabled: boolean): UseQueryResult<AdminSession, Error> {
   return useQuery({
     queryKey: ['session'],
-    queryFn: async () => (await api.get<AdminSession>('/admin/auth/session')).data,
+    queryFn: async (): Promise<AdminSession> =>
+      (await api.get<AdminSession>('/admin/auth/session')).data,
     enabled,
     retry: false,
   })
 }
 
-export function useUsers() {
+export function useUsers(): UseQueryResult<readonly AdminUserListItem[], Error> {
   return useQuery({
     queryKey: ['users'],
-    queryFn: async () => (await api.get<AdminUserListItem[]>('/admin/users')).data,
+    queryFn: async (): Promise<readonly AdminUserListItem[]> =>
+      (await api.get<readonly AdminUserListItem[]>('/admin/users')).data,
   })
 }
 
-export function useUserConsistency(userId: number) {
+export function useUserConsistency(
+  userId: number,
+): UseQueryResult<AdminUserConsistencyResponse, Error> {
   return useQuery({
     queryKey: ['consistency', userId],
-    queryFn: async () =>
+    queryFn: async (): Promise<AdminUserConsistencyResponse> =>
       (await api.get<AdminUserConsistencyResponse>(`/admin/users/${userId}/consistency`)).data,
   })
 }
 
-export function useUserPayment(userId: number) {
+export function useUserPayment(userId: number): UseQueryResult<UserPayment, Error> {
   return useQuery({
     queryKey: ['payment', userId],
-    queryFn: async () => (await api.get<UserPayment>(`/admin/users/${userId}/payment`)).data,
+    queryFn: async (): Promise<UserPayment> =>
+      (await api.get<UserPayment>(`/admin/users/${userId}/payment`)).data,
   })
 }
 
-export function useUpsertUserPayment(userId: number) {
+export function useUpsertUserPayment(
+  userId: number,
+): UseMutationResult<UserPayment, Error, UserPaymentRequestBody> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (body: UserPaymentRequestBody) =>
+    mutationFn: async (body: UserPaymentRequestBody): Promise<UserPayment> =>
       (await api.put<UserPayment>(`/admin/users/${userId}/payment`, body)).data,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['payment', userId] })
-      qc.invalidateQueries({ queryKey: ['users'] })
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['payment', userId] })
+      void qc.invalidateQueries({ queryKey: ['users'] })
     },
   })
 }
 
-export function usePaymentMethods() {
+export function usePaymentMethods(): UseQueryResult<readonly PaymentMethod[], Error> {
   return useQuery({
     queryKey: ['payment-methods'],
-    queryFn: async () => (await api.get<PaymentMethod[]>('/admin/payment-methods')).data,
+    queryFn: async (): Promise<readonly PaymentMethod[]> =>
+      (await api.get<readonly PaymentMethod[]>('/admin/payment-methods')).data,
   })
 }
 
-export function useCreatePaymentMethod() {
+export function useCreatePaymentMethod(): UseMutationResult<PaymentMethod, Error, string> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (label: string) =>
+    mutationFn: async (label: string): Promise<PaymentMethod> =>
       (await api.post<PaymentMethod>('/admin/payment-methods', { label })).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-methods'] }),
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['payment-methods'] })
+    },
   })
 }
 
-export function useDeletePaymentMethod() {
+export function useDeletePaymentMethod(): UseMutationResult<void, Error, number> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: number): Promise<void> => {
       await api.delete(`/admin/payment-methods/${id}`)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['payment-methods'] }),
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['payment-methods'] })
+    },
   })
 }
 
-export function useGames() {
+export function useGames(): UseQueryResult<readonly AdminGame[], Error> {
   return useQuery({
     queryKey: ['games'],
-    queryFn: async () => (await api.get<AdminGame[]>('/admin/games')).data,
+    queryFn: async (): Promise<readonly AdminGame[]> =>
+      (await api.get<readonly AdminGame[]>('/admin/games')).data,
   })
 }
 
-export function useSetGameScore() {
+export function useSetGameScore(): UseMutationResult<void, Error, SetGameScoreVars> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (args: { gameId: number; team1Score: number; team2Score: number; winner: string }) => {
-      const { gameId, ...body } = args
+    mutationFn: async ({ gameId, ...body }: SetGameScoreVars): Promise<void> => {
       await api.put(`/admin/games/${gameId}/score`, body)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['games'] }),
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['games'] })
+    },
   })
 }
 
-export function useSyncGameScore() {
+export function useSyncGameScore(): UseMutationResult<SyncResult, Error, number> {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: async (gameId: number) =>
-      (await api.post<{ applied: boolean; message?: string }>(`/admin/games/${gameId}/sync`)).data,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['games'] }),
+    mutationFn: async (gameId: number): Promise<SyncResult> =>
+      (await api.post<SyncResult>(`/admin/games/${gameId}/sync`)).data,
+    onSuccess: (): void => {
+      void qc.invalidateQueries({ queryKey: ['games'] })
+    },
   })
 }

@@ -2,7 +2,13 @@ import { Box, Card, CardContent, Typography } from '@mui/material'
 import type { ReactNode } from 'react'
 
 // AuthShell is the centered card used by every unauthenticated page.
-export function AuthShell({ title, children }: { title: string; children: ReactNode }) {
+export function AuthShell({
+  title,
+  children,
+}: {
+  readonly title: string
+  readonly children: ReactNode
+}): JSX.Element {
   return (
     <Box
       sx={{

@@ -4,14 +4,14 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom'
 import { api, extractError, setToken } from '../api/client'
 import { AuthShell } from './AuthShell'
 
-export function LoginPage() {
+export function LoginPage(): JSX.Element {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const onSubmit = async (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault()
     setError('')
     setLoading(true)

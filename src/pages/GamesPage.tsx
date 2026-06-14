@@ -28,7 +28,7 @@ import { useGames, useSetGameScore, useSyncGameScore } from '../api/hooks'
 import { extractError } from '../api/client'
 import type { AdminGame } from '../api/types'
 
-export function GamesPage() {
+export function GamesPage(): JSX.Element {
   const { data, isLoading, error } = useGames()
   const sync = useSyncGameScore()
   const [editing, setEditing] = useState<AdminGame | null>(null)
@@ -43,7 +43,7 @@ export function GamesPage() {
   }
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
 
-  const onSync = (g: AdminGame) => {
+  const onSync = (g: AdminGame): void => {
     sync.mutate(g.gameId, {
       onSuccess: (res) =>
         setToast(res.applied ? 'Marcador sincronizado.' : res.message || 'Sin cambios.'),
@@ -119,13 +119,19 @@ export function GamesPage() {
   )
 }
 
-function ScoreDialog({ game, onClose }: { game: AdminGame; onClose: () => void }) {
+function ScoreDialog({
+  game,
+  onClose,
+}: {
+  readonly game: AdminGame
+  readonly onClose: () => void
+}): JSX.Element {
   const setScore = useSetGameScore()
   const [t1, setT1] = useState(String(game.team1Score ?? 0))
   const [t2, setT2] = useState(String(game.team2Score ?? 0))
   const [winner, setWinner] = useState(game.winner ?? '')
 
-  const onSave = () => {
+  const onSave = (): void => {
     setScore.mutate(
       {
         gameId: game.gameId,

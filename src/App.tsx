@@ -9,7 +9,7 @@ import { UserDetailPage } from './pages/UserDetailPage'
 import { GamesPage } from './pages/GamesPage'
 import { PaymentMethodsPage } from './pages/PaymentMethodsPage'
 
-export function App() {
+export function App(): JSX.Element {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
