@@ -108,6 +108,74 @@ export interface Settings {
   readonly entryFeeUsd: number
 }
 
+// Real-results data (admin/results/json). Mirrors pdf.ResultsData in
+// quiniela-rest-api: group-stage scores, live standings, and the knockout
+// bracket with a provisional round of 32 — the JSON twin of the results PDF.
+
+export interface ResultsTeam {
+  readonly name: string
+  readonly country: string
+}
+
+export interface ResultsGroupGame {
+  readonly team1: ResultsTeam
+  readonly team2: ResultsTeam
+  // null until the match has been played.
+  readonly team1Score: number | null
+  readonly team2Score: number | null
+}
+
+export interface ResultsStandingRow {
+  readonly team: ResultsTeam
+  readonly rank: number
+  readonly played: number
+  readonly points: number
+  readonly goalsFor: number
+  readonly goalsAgainst: number
+  readonly goalDiff: number
+  // Currently among the eight best third-placed teams (provisional).
+  readonly bestThird: boolean
+}
+
+export interface ResultsGroup {
+  readonly name: string
+  readonly games: readonly ResultsGroupGame[]
+  readonly standings: readonly ResultsStandingRow[]
+}
+
+export interface ResultsSlot {
+  // Empty name => slot undecided ("Por definir").
+  readonly team: ResultsTeam
+  // null until the match has been played.
+  readonly score: number | null
+  // Slot source label: a group-position seed ("2A") for the round of 32 or a
+  // feeder game ("G74") for later rounds.
+  readonly origin: string
+  // Projected from current standings rather than really classified: render muted.
+  readonly provisional: boolean
+}
+
+export interface ResultsMatch {
+  readonly gameId: number
+  readonly team1: ResultsSlot
+  readonly team2: ResultsSlot
+  readonly winner?: ResultsTeam
+}
+
+export interface ResultsRound {
+  // games-table round numbering: 2 = round of 32 … 6 = final.
+  readonly round: number
+  readonly matches: readonly ResultsMatch[]
+}
+
+export interface ResultsData {
+  readonly groups: readonly ResultsGroup[]
+  readonly rounds: readonly ResultsRound[]
+  // Provisional-projection explanation; empty when the bracket has no
+  // projected teams.
+  readonly legend: string
+}
+
 export type LinkedPaymentStatus = 'PENDING' | 'VERIFIED'
 
 export interface PaymentBeneficiary {

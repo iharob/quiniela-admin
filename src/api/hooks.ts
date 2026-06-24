@@ -15,6 +15,7 @@ import type {
   LinkedPaymentStatus,
   Payment,
   PaymentMethod,
+  ResultsData,
   Settings,
   UserPayment,
 } from './types'
@@ -160,6 +161,14 @@ export function useSyncGameScore(): UseMutationResult<SyncResult, Error, number>
     onSuccess: (): void => {
       void qc.invalidateQueries({ queryKey: ['games'] })
     },
+  })
+}
+
+export function useResults(): UseQueryResult<ResultsData, Error> {
+  return useQuery({
+    queryKey: ['results'],
+    queryFn: async (): Promise<ResultsData> =>
+      (await api.get<ResultsData>('/admin/results/json')).data,
   })
 }
 
