@@ -228,7 +228,7 @@ function Bracket({ rounds }: { readonly rounds: ResultsData['rounds'] }): JSX.El
 
   if (!cleanTree) {
     return (
-      <Box sx={{ display: 'flex', gap: 3, width: 'max-content' }}>
+      <Box sx={{ display: 'flex', gap: 3, width: 'max-content', mx: 'auto' }}>
         {rounds.map((round) => (
           <Stack key={round.round} spacing={1.5} sx={{ justifyContent: 'space-around' }}>
             <RoundLabel round={round} />
@@ -300,7 +300,9 @@ function Bracket({ rounds }: { readonly rounds: ResultsData['rounds'] }): JSX.El
   }
 
   return (
-    <Box sx={{ position: 'relative', width: totalW, height: totalH }}>
+    // margin-inline auto centres the fixed-width draw when the viewport is wider
+    // than it, and collapses to 0 (no clipping, start stays scrollable) when not.
+    <Box sx={{ position: 'relative', width: totalW, height: totalH, mx: 'auto' }}>
       {/* Drawn first so the cards paint on top of the lines (DOM order, no z-index). */}
       <Box
         component="svg"
