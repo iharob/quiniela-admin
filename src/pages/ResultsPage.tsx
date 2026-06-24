@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, Typography } from '@mui/material'
+import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, Typography, useTheme } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
 import DownloadIcon from '@mui/icons-material/Download'
 import { useResults } from '../api/hooks'
@@ -211,22 +211,26 @@ function FixtureRow({ game }: { readonly game: ResultsGroupGame }): JSX.Element 
 
 // Bracket draws the knockout stage as the PDF's two-sided key: the round of 32
 // fans out from the left and right edges and converges, round by round, on the
-// final in the centre. The backend returns each round already in bracket draw
-// order, so the first half of every round is the left subtree and the second
-// half the right — a strict binary tree we render recursively. The connector
-// elbows are pure CSS: each match's two feeders occupy equal flup halves of the
-// node, so their centres land exactly at 25%/75% and the border lines always
-// meet, at any size.
+// centred final. Rather than lean on CSS intrinsic sizing (which overlapped and
+// over-grew), every match is placed at an explicit, computed position using the
+// same slot/column geometry as the PDF (pdf/layout.go), and the connectors are
+// an SVG overlay drawn from those same coordinates — so a parent always sits at
+// the exact midpoint of its two feeders and nothing can overlap.
 function Bracket({ rounds }: { readonly rounds: ResultsData['rounds'] }): JSX.Element {
+  const theme = useTheme()
   const depth = rounds.length
 
-  // Too few rounds to form a two-sided tree (e.g. only the final loaded): fall
-  // back to a plain left-to-right column layout.
-  if (depth < 2) {
+  // The placement maths assume a clean halving tree (round k has 2^(depth-1-k)
+  // matches). The backend always returns the full seeded bracket; if that ever
+  // doesn't hold, fall back to plain columns instead of mis-placing cards.
+  const cleanTree =
+    depth >= 2 && rounds.every((r, k) => r.matches.length === 2 ** (depth - 1 - k))
+
+  if (!cleanTree) {
     return (
       <Box sx={{ display: 'flex', gap: 3, width: 'max-content' }}>
         {rounds.map((round) => (
-          <Stack key={round.round} spacing={1.5} sx={{ justifyContent: 'space-around', minWidth: 200 }}>
+          <Stack key={round.round} spacing={1.5} sx={{ justifyContent: 'space-around' }}>
             <RoundLabel round={round} />
             {round.matches.map((match) => (
               <MatchCard key={match.gameId} match={match} />
@@ -237,57 +241,106 @@ function Bracket({ rounds }: { readonly rounds: ResultsData['rounds'] }): JSX.El
     )
   }
 
-  const matchAt = (d: number, i: number): ResultsMatch | undefined => rounds[d]?.matches[i]
-  const rootDepth = depth - 2 // the semi-final round feeds the final
-  const final = matchAt(depth - 1, 0)
+  const cols = 2 * depth - 1
+  const perSide = rounds[0].matches.length / 2
+  const colPitch = CARD_W + COL_GAP
+  const totalW = cols * CARD_W + (cols - 1) * COL_GAP
+  const totalH = perSide * UNIT
 
-  // Reserve a vertical slot per outermost match on each side, so the tree has
-  // room to fan out instead of cramming its first round into the card height.
-  const perSide = Math.max(1, Math.ceil(rounds[0].matches.length / 2))
-  const minHeight = perSide * SLOT_HEIGHT
+  const colX = (c: number): number => c * colPitch
+  // Vertical centre of match `j` at round depth `d` — the PDF's matchCenterY.
+  const centerY = (d: number, j: number): number => (j + 0.5) * 2 ** d * UNIT
+
+  const cards: JSX.Element[] = []
+  const lines: JSX.Element[] = []
+  const addLine = (key: string, x1: number, y1: number, x2: number, y2: number): void => {
+    lines.push(<line key={key} x1={x1} y1={y1} x2={x2} y2={y2} />)
+  }
+
+  for (let d = 0; d < depth; d++) {
+    const matches = rounds[d].matches
+
+    if (d === depth - 1) {
+      // The final: a single match centred vertically (totalH/2), fed by the two
+      // semi-finals which share that centre Y. (centerY's per-side formula would
+      // overflow here, so the centre is taken directly.)
+      const c = depth - 1
+      const yMid = totalH / 2
+      cards.push(<PlacedCard key="final" x={colX(c)} y={yMid} match={matches[0]} highlight />)
+      addLine('final-l', colX(depth - 2) + CARD_W, yMid, colX(c), yMid)
+      addLine('final-r', colX(cols - 1 - (depth - 2)), yMid, colX(c) + CARD_W, yMid)
+      continue
+    }
+
+    const half = matches.length / 2
+    matches.forEach((match, i) => {
+      const isLeft = i < half
+      const j = isLeft ? i : i - half
+      const c = isLeft ? d : cols - 1 - d
+      cards.push(
+        <PlacedCard key={`${d}-${i}`} x={colX(c)} y={centerY(d, j)} match={match} mirror={!isLeft} />,
+      )
+
+      // Connector elbow from this match back to its two feeders one round out.
+      if (d >= 1) {
+        const childC = isLeft ? c - 1 : c + 1
+        const y0 = centerY(d - 1, 2 * j)
+        const y1 = centerY(d - 1, 2 * j + 1)
+        const yp = centerY(d, j)
+        const childEdge = isLeft ? colX(childC) + CARD_W : colX(childC)
+        const parentEdge = isLeft ? colX(c) : colX(c) + CARD_W
+        const gutter = (childEdge + parentEdge) / 2
+        const k = `${d}-${i}`
+        addLine(`${k}-a`, childEdge, y0, gutter, y0)
+        addLine(`${k}-b`, childEdge, y1, gutter, y1)
+        addLine(`${k}-v`, gutter, y0, gutter, y1)
+        addLine(`${k}-p`, gutter, yp, parentEdge, yp)
+      }
+    })
+  }
 
   return (
-    <Box sx={[BRACKET_SX, { minHeight }]}>
-      <BracketNode depth={rootDepth} index={0} side="left" matchAt={matchAt} />
-      <Box className="bk-final">
-        {final && <MatchCard match={final} highlight />}
+    <Box sx={{ position: 'relative', width: totalW, height: totalH }}>
+      {/* Drawn first so the cards paint on top of the lines (DOM order, no z-index). */}
+      <Box
+        component="svg"
+        width={totalW}
+        height={totalH}
+        viewBox={`0 0 ${totalW} ${totalH}`}
+        sx={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+          stroke: theme.palette.divider,
+          strokeWidth: 1.5,
+        }}
+      >
+        {lines}
       </Box>
-      <BracketNode depth={rootDepth} index={1} side="right" matchAt={matchAt} />
+      {cards}
     </Box>
   )
 }
 
-function BracketNode({
-  depth,
-  index,
-  side,
-  matchAt,
+// PlacedCard positions a MatchCard so its centre lands on (x left edge, y), the
+// slot centre the connectors are drawn to.
+function PlacedCard({
+  x,
+  y,
+  match,
+  mirror,
+  highlight,
 }: {
-  readonly depth: number
-  readonly index: number
-  readonly side: 'left' | 'right'
-  readonly matchAt: (d: number, i: number) => ResultsMatch | undefined
+  readonly x: number
+  readonly y: number
+  readonly match?: ResultsMatch
+  readonly mirror?: boolean
+  readonly highlight?: boolean
 }): JSX.Element {
-  const match = matchAt(depth, index)
-  const children =
-    depth > 0 ? (
-      <Box component="ul" className="bk-children">
-        <Box component="li" className="bk-node">
-          <BracketNode depth={depth - 1} index={index * 2} side={side} matchAt={matchAt} />
-        </Box>
-        <Box component="li" className="bk-node">
-          <BracketNode depth={depth - 1} index={index * 2 + 1} side={side} matchAt={matchAt} />
-        </Box>
-      </Box>
-    ) : null
-
-  // On the left, feeders sit to the left of the match (and so render first); on
-  // the right they sit to its right.
-  const card = <MatchCard match={match} mirror={side === 'right'} />
   return (
-    <Box className={`bk-leaf bk-${side}`}>
-      {side === 'left' ? children : card}
-      {side === 'left' ? card : children}
+    <Box sx={{ position: 'absolute', left: x, top: y - CARD_H / 2 }}>
+      <MatchCard match={match} mirror={mirror} highlight={highlight} />
     </Box>
   )
 }
@@ -305,9 +358,25 @@ function MatchCard({
   return (
     <Card
       variant="outlined"
-      sx={{ flexShrink: 0, width: 168, ...(highlight ? { borderColor: 'primary.main' } : {}) }}
+      sx={{
+        flexShrink: 0,
+        width: CARD_W,
+        height: CARD_H,
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+        ...(highlight ? { borderColor: 'primary.main' } : {}),
+      }}
     >
-      <CardContent sx={{ p: 1, '&:last-child': { pb: 1 } }}>
+      <CardContent
+        sx={{
+          p: 0.75,
+          height: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          '&:last-child': { pb: 0.75 },
+        }}
+      >
         <SlotRow slot={match?.team1} mirror={mirror} isWinner={isWinner(match?.team1, winner)} />
         <Divider sx={{ my: 0.5 }} />
         <SlotRow slot={match?.team2} mirror={mirror} isWinner={isWinner(match?.team2, winner)} />
@@ -403,10 +472,15 @@ function formatGoalDiff(diff: number): string {
   return diff > 0 ? `+${diff}` : String(diff)
 }
 
-// Vertical room reserved per outermost (round-of-32) match on one side. The
-// bracket's min height is this times the number of first-round matches per
-// side, so the tree fans out with comfortable gaps.
-const SLOT_HEIGHT = 60
+// Bracket geometry, in px. CARD_W/CARD_H are the fixed match-card size; UNIT is
+// the vertical slot reserved per round-of-32 match (kept > CARD_H so cards never
+// touch); COL_GAP is the space between round columns (and the connector run).
+// Total width = (2*rounds-1)*CARD_W + (2*rounds-2)*COL_GAP — for a full bracket
+// 9*150 + 8*24 = 1566px, comfortably inside a wide screen.
+const CARD_W = 150
+const CARD_H = 54
+const UNIT = 72
+const COL_GAP = 24
 
 // Knockout rounds in the games-table numbering used by the backend
 // (2 = round of 32 … 6 = final).
@@ -418,107 +492,3 @@ const ROUND_LABELS: Readonly<Record<number, string>> = {
   6: 'Final',
 }
 
-// Two-sided bracket geometry. Every node lays its match alongside a `bk-children`
-// list of its two feeders; each feeder is a flup:1 half of the node, so feeder
-// centres are always at 25%/75% and the connector borders (a vertical line
-// between the two feeders plus horizontal stubs to each feeder and out to the
-// parent) meet exactly, independent of pixel size. `--bk-gap` is the horizontal
-// run of the connectors; `--bk-line`/`--bk-lw` its colour and thickness.
-const BRACKET_SX = {
-  '--bk-gap': '18px',
-  '--bk-lw': '1.5px',
-  '--bk-line': (theme: { palette: { divider: string } }) => theme.palette.divider,
-  display: 'flex',
-  // Stretch the two halves and the final to the bracket's full height so the
-  // flup:1 feeders distribute that height — the first round fans out evenly.
-  alignItems: 'stretch',
-  width: 'max-content',
-
-  '& .bk-children': {
-    listStyle: 'none',
-    m: 0,
-    p: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    alignSelf: 'stretch',
-  },
-  // Inside a feeder list each node takes an equal flup half, so feeder match
-  // centres land at 25%/75% of the parent — where the connector borders meet.
-  '& .bk-node': { display: 'flex', flex: '1 1 0', minHeight: 0 },
-  // A node's row of [feeders | match]. Content-width (never grows horizontally)
-  // so equal-shaped subtrees stay equal width and the stubs align; it stretches
-  // vertically to fill its node, and centres its match on that height.
-  '& .bk-leaf': { display: 'flex', alignItems: 'center', position: 'relative' },
-
-  // Left side: feeders to the left of the match. Connectors run along the right
-  // edge of the children list, toward the match.
-  '& .bk-left > .bk-children': { marginRight: 'calc(2 * var(--bk-gap))', position: 'relative' },
-  '& .bk-left > .bk-children::after': {
-    content: '""',
-    position: 'absolute',
-    right: 'calc(-2 * var(--bk-gap))',
-    width: 'var(--bk-gap)',
-    top: '50%',
-    borderTop: 'var(--bk-lw) solid var(--bk-line)',
-  },
-  '& .bk-left > .bk-children::before': {
-    content: '""',
-    position: 'absolute',
-    right: 'calc(-1 * var(--bk-gap))',
-    top: '25%',
-    height: '50%',
-    borderRight: 'var(--bk-lw) solid var(--bk-line)',
-  },
-  '& .bk-left > .bk-children > .bk-node > .bk-leaf::after': {
-    content: '""',
-    position: 'absolute',
-    right: 'calc(-1 * var(--bk-gap))',
-    width: 'var(--bk-gap)',
-    top: '50%',
-    borderTop: 'var(--bk-lw) solid var(--bk-line)',
-  },
-
-  // Right side: mirror image of the left.
-  '& .bk-right > .bk-children': { marginLeft: 'calc(2 * var(--bk-gap))', position: 'relative' },
-  '& .bk-right > .bk-children::after': {
-    content: '""',
-    position: 'absolute',
-    left: 'calc(-2 * var(--bk-gap))',
-    width: 'var(--bk-gap)',
-    top: '50%',
-    borderTop: 'var(--bk-lw) solid var(--bk-line)',
-  },
-  '& .bk-right > .bk-children::before': {
-    content: '""',
-    position: 'absolute',
-    left: 'calc(-1 * var(--bk-gap))',
-    top: '25%',
-    height: '50%',
-    borderLeft: 'var(--bk-lw) solid var(--bk-line)',
-  },
-  '& .bk-right > .bk-children > .bk-node > .bk-leaf::before': {
-    content: '""',
-    position: 'absolute',
-    left: 'calc(-1 * var(--bk-gap))',
-    width: 'var(--bk-gap)',
-    top: '50%',
-    borderTop: 'var(--bk-lw) solid var(--bk-line)',
-  },
-
-  // The final, centred, with a short stub out to each semi-final.
-  '& .bk-final': {
-    position: 'relative',
-    display: 'flex',
-    alignItems: 'center',
-    mx: 'calc(2 * var(--bk-gap))',
-  },
-  '& .bk-final::before, & .bk-final::after': {
-    content: '""',
-    position: 'absolute',
-    top: '50%',
-    width: 'calc(2 * var(--bk-gap))',
-    borderTop: 'var(--bk-lw) solid var(--bk-line)',
-  },
-  '& .bk-final::before': { right: '100%' },
-  '& .bk-final::after': { left: '100%' },
-} as const
