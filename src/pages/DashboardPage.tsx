@@ -82,7 +82,7 @@ export function DashboardPage(): JSX.Element {
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
 
   return (
-    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', p: 3 }}>
       <SectionTitle>Resumen</SectionTitle>
 
       <Grid container spacing={2}>

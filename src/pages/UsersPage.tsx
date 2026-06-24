@@ -155,7 +155,7 @@ export function UsersPage(): JSX.Element {
   if (error) return <Alert severity="error">{extractError(error)}</Alert>
 
   return (
-    <Stack spacing={2} sx={{ height: '100%' }}>
+    <Stack spacing={2} sx={{ height: '100%', p: 3 }}>
       <Box sx={{ flexShrink: 0 }}>
         <SectionTitle>Usuarios ({filtered.length})</SectionTitle>
         <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center', mt: 1 }}>

@@ -50,7 +50,7 @@ export function UserDetailPage(): JSX.Element {
   const user = users?.find((u) => u.userId === userId)
 
   return (
-    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <Stack spacing={2} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', p: 3 }}>
       <Box sx={{ flexShrink: 0 }}>
         <Button startIcon={<ArrowBackIcon />} onClick={() => navigate('/users')}>
           Volver

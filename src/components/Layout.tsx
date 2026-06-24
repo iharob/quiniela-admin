@@ -164,10 +164,10 @@ export function Layout(): JSX.Element {
           ))}
         </Tabs>
       </AppBar>
-      <Box
-        component="main"
-        sx={{ flex: 1, minHeight: 0, p: 3, display: 'flex', flexDirection: 'column' }}
-      >
+      {/* No padding here on purpose: each page owns its own breathing room, so
+          a page can pad its content (tables) while letting a wide element (the
+          results bracket) scroll edge-to-edge. */}
+      <Box component="main" sx={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         <Outlet />
       </Box>
     </Box>

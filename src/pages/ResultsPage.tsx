@@ -59,7 +59,7 @@ export function ResultsPage(): JSX.Element {
   if (!data) return <Alert severity="info">Sin datos.</Alert>
 
   return (
-    <Stack spacing={3} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
+    <Stack spacing={3} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', p: 3 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
         <SectionTitle>Resultados</SectionTitle>
         <Stack direction="row" spacing={1}>
@@ -109,7 +109,10 @@ export function ResultsPage(): JSX.Element {
               {data.legend}
             </Typography>
           )}
-          <Box sx={{ overflowX: 'auto', pb: 1 }}>
+          {/* Break out of the page's horizontal padding so the bracket's
+              scrollbar reaches the window edge; re-add it as inner padding so
+              the first/last cards still have breathing room. */}
+          <Box sx={{ overflowX: 'auto', pb: 1, mx: -3, px: 3 }}>
             <Bracket rounds={data.rounds} />
           </Box>
         </Box>
@@ -238,8 +241,13 @@ function Bracket({ rounds }: { readonly rounds: ResultsData['rounds'] }): JSX.El
   const rootDepth = depth - 2 // the semi-final round feeds the final
   const final = matchAt(depth - 1, 0)
 
+  // Reserve a vertical slot per outermost match on each side, so the tree has
+  // room to fan out instead of cramming its first round into the card height.
+  const perSide = Math.max(1, Math.ceil(rounds[0].matches.length / 2))
+  const minHeight = perSide * SLOT_HEIGHT
+
   return (
-    <Box sx={BRACKET_SX}>
+    <Box sx={[BRACKET_SX, { minHeight }]}>
       <BracketNode depth={rootDepth} index={0} side="left" matchAt={matchAt} />
       <Box className="bk-final">
         {final && <MatchCard match={final} highlight />}
@@ -395,6 +403,11 @@ function formatGoalDiff(diff: number): string {
   return diff > 0 ? `+${diff}` : String(diff)
 }
 
+// Vertical room reserved per outermost (round-of-32) match on one side. The
+// bracket's min height is this times the number of first-round matches per
+// side, so the tree fans out with comfortable gaps.
+const SLOT_HEIGHT = 60
+
 // Knockout rounds in the games-table numbering used by the backend
 // (2 = round of 32 … 6 = final).
 const ROUND_LABELS: Readonly<Record<number, string>> = {
@@ -416,7 +429,9 @@ const BRACKET_SX = {
   '--bk-lw': '1.5px',
   '--bk-line': (theme: { palette: { divider: string } }) => theme.palette.divider,
   display: 'flex',
-  alignItems: 'center',
+  // Stretch the two halves and the final to the bracket's full height so the
+  // flup:1 feeders distribute that height — the first round fans out evenly.
+  alignItems: 'stretch',
   width: 'max-content',
 
   '& .bk-children': {

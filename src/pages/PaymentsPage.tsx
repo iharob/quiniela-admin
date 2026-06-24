@@ -54,6 +54,20 @@ function formatAmount(p: Payment): string {
   return `${p.amount.toFixed(2)} ${p.currency}`
 }
 
+// EllipsisCell keeps long text (payer, beneficiaries, reference…) on a single
+// line and truncates with an ellipsis instead of wrapping the row. The full
+// value stays available via the native tooltip.
+function EllipsisCell({ text, max }: { readonly text: string; readonly max: number }): JSX.Element {
+  return (
+    <TableCell
+      title={text}
+      sx={{ maxWidth: max, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+    >
+      {text}
+    </TableCell>
+  )
+}
+
 function paymentSortValue(p: Payment, key: string): SortValue {
   switch (key) {
     case 'paymentId':
@@ -112,7 +126,7 @@ export function PaymentsPage(): JSX.Element {
   }
 
   return (
-    <Stack spacing={2} sx={{ height: '100%' }}>
+    <Stack spacing={2} sx={{ height: '100%', p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <SectionTitle>Pagos ({data?.length ?? 0})</SectionTitle>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
@@ -139,11 +153,11 @@ export function PaymentsPage(): JSX.Element {
             {sorted.map((p) => (
               <TableRow key={p.paymentId} hover>
                 <TableCell>{p.paymentId}</TableCell>
-                <TableCell>{p.payerName}</TableCell>
-                <TableCell>{p.beneficiaries.map((b) => b.name).join(', ')}</TableCell>
-                <TableCell>{formatAmount(p)}</TableCell>
-                <TableCell>{p.paymentMethodLabel || '—'}</TableCell>
-                <TableCell>{p.reference || '—'}</TableCell>
+                <EllipsisCell text={p.payerName} max={160} />
+                <EllipsisCell text={p.beneficiaries.map((b) => b.name).join(', ')} max={240} />
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>{formatAmount(p)}</TableCell>
+                <EllipsisCell text={p.paymentMethodLabel || '—'} max={140} />
+                <EllipsisCell text={p.reference || '—'} max={160} />
                 <TableCell>
                   <Chip
                     size="small"

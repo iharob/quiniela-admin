@@ -58,7 +58,7 @@ export function PaymentMethodsPage(): JSX.Element {
   }
 
   return (
-    <Stack spacing={2} sx={{ height: '100%', maxWidth: 640 }}>
+    <Stack spacing={2} sx={{ height: '100%', maxWidth: 640, p: 3 }}>
       <SectionTitle>Métodos de pago</SectionTitle>
 
       <Box component="form" onSubmit={onAdd} sx={{ display: 'flex', gap: 1, flexShrink: 0 }}>

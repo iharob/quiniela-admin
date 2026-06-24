@@ -75,7 +75,7 @@ export function GamesPage(): JSX.Element {
   }
 
   return (
-    <Stack spacing={2} sx={{ height: '100%' }}>
+    <Stack spacing={2} sx={{ height: '100%', p: 3 }}>
       <SectionTitle>Partidos ({data?.length ?? 0})</SectionTitle>
       <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         <Table size="small" stickyHeader>
