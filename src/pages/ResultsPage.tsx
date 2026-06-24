@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { Alert, Box, Button, Card, CardContent, CircularProgress, Divider, Stack, Typography } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import DownloadIcon from '@mui/icons-material/Download'
 import { useResults } from '../api/hooks'
-import { extractError } from '../api/client'
+import { api, extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
 import { flagEmoji } from '../utils/flag'
 import type {
@@ -22,6 +24,29 @@ import type {
 // provisional bracket projection.
 export function ResultsPage(): JSX.Element {
   const { data, isLoading, error, refetch, isFetching } = useResults()
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfError, setPdfError] = useState('')
+
+  // The PDF is the same data rendered server-side. Fetch it through the axios
+  // client so the bearer token is attached, then hand the blob to the browser
+  // as a download.
+  const onDownloadPdf = async (): Promise<void> => {
+    setPdfBusy(true)
+    setPdfError('')
+    try {
+      const res = await api.get('/admin/results/pdf', { responseType: 'blob' })
+      const url = URL.createObjectURL(res.data as Blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'resultados.pdf'
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setPdfError(extractError(err))
+    } finally {
+      setPdfBusy(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -37,10 +62,21 @@ export function ResultsPage(): JSX.Element {
     <Stack spacing={3} sx={{ height: '100%', overflowY: 'auto', overflowX: 'hidden' }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
         <SectionTitle>Resultados</SectionTitle>
-        <Button startIcon={<RefreshIcon />} onClick={() => void refetch()} disabled={isFetching}>
-          Actualizar
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            startIcon={pdfBusy ? <CircularProgress size={16} color="inherit" /> : <DownloadIcon />}
+            onClick={() => void onDownloadPdf()}
+            disabled={pdfBusy}
+          >
+            PDF
+          </Button>
+          <Button startIcon={<RefreshIcon />} onClick={() => void refetch()} disabled={isFetching}>
+            Actualizar
+          </Button>
+        </Stack>
       </Box>
+
+      {pdfError && <Alert severity="error">{pdfError}</Alert>}
 
       <Box>
         <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
