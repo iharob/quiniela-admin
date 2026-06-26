@@ -89,7 +89,7 @@ export function ResultsPage(): JSX.Element {
         <Box
           sx={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
             gap: 2,
             alignItems: 'start',
           }}
@@ -107,7 +107,7 @@ export function ResultsPage(): JSX.Element {
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
           * Clasifican los 8 mejores (clasificación provisional)
         </Typography>
-        <Card variant="outlined" sx={{ maxWidth: 420 }}>
+        <Card variant="outlined" sx={{ maxWidth: 420, mx: 'auto' }}>
           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
             <BestThirdsTable rows={data.bestThirds ?? []} />
           </CardContent>
@@ -236,6 +236,7 @@ function BestThirdsTable({ rows }: { readonly rows: readonly ResultsThirdRow[] }
           <th>GF</th>
           <th>GC</th>
           <th>DG</th>
+          <th title="Fair play (-1 amarilla, -3 roja)">FP</th>
         </tr>
       </thead>
       <tbody>
@@ -261,6 +262,7 @@ function BestThirdsTable({ rows }: { readonly rows: readonly ResultsThirdRow[] }
             <td>{row.goalsFor}</td>
             <td>{row.goalsAgainst}</td>
             <td>{formatGoalDiff(row.goalDiff)}</td>
+            <td>{row.fairPlay ?? 0}</td>
           </Box>
         ))}
       </tbody>
