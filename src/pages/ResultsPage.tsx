@@ -99,6 +99,20 @@ export function ResultsPage(): JSX.Element {
         </Box>
       </Box>
 
+      <Box>
+        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
+          Mejores terceros
+        </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+          * Clasifican los 8 mejores (clasificación provisional)
+        </Typography>
+        <Card variant="outlined" sx={{ maxWidth: 420 }}>
+          <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+            <BestThirdsTable rows={collectBestThirds(data.groups)} />
+          </CardContent>
+        </Card>
+      </Box>
+
       {data.rounds.length > 0 && (
         <Box>
           <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>
@@ -176,6 +190,66 @@ function StandingsTable({ rows }: { readonly rows: readonly ResultsStandingRow[]
             sx={row.bestThird ? { bgcolor: 'action.hover' } : undefined}
           >
             <td>{row.rank}</td>
+            <td>
+              <TeamLabel team={row.team} />
+              {row.bestThird && ' *'}
+            </td>
+            <td>{row.played}</td>
+            <td style={{ fontWeight: 700 }}>{row.points}</td>
+            <td>{row.goalsFor}</td>
+            <td>{row.goalsAgainst}</td>
+            <td>{formatGoalDiff(row.goalDiff)}</td>
+          </Box>
+        ))}
+      </tbody>
+    </Box>
+  )
+}
+
+// BestThirdsTable ranks every group's third-placed team against each other in a
+// single table. The eight that qualify (row.bestThird) are highlighted exactly
+// like in StandingsTable, and a heavier bottom border marks the cut after the
+// last qualifier so the in/out boundary is visible.
+function BestThirdsTable({ rows }: { readonly rows: readonly ThirdRow[] }): JSX.Element {
+  const lastQualifier = rows.map((r) => r.row.bestThird).lastIndexOf(true)
+  return (
+    <Box
+      component="table"
+      sx={{
+        width: '100%',
+        borderCollapse: 'collapse',
+        fontSize: 12,
+        '& th, & td': { py: 0.25, px: 0.5, textAlign: 'right', whiteSpace: 'nowrap' },
+        '& th:nth-of-type(3), & td:nth-of-type(3)': { textAlign: 'left', width: '100%' },
+        '& th': { color: 'text.secondary', fontWeight: 600 },
+      }}
+    >
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Grupo</th>
+          <th>Equipo</th>
+          <th>PJ</th>
+          <th>Pts</th>
+          <th>GF</th>
+          <th>GC</th>
+          <th>DG</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map(({ group, row }, idx) => (
+          <Box
+            component="tr"
+            key={row.team.country || `${group}-${idx}`}
+            sx={{
+              ...(row.bestThird ? { bgcolor: 'action.hover' } : undefined),
+              ...(idx === lastQualifier
+                ? { '& td': { borderBottom: '2px solid', borderColor: 'divider' } }
+                : undefined),
+            }}
+          >
+            <td>{idx + 1}</td>
+            <td>{group}</td>
             <td>
               <TeamLabel team={row.team} />
               {row.bestThird && ' *'}
@@ -472,6 +546,39 @@ function TeamLabel({ team, reverse }: { readonly team: ResultsTeam; readonly rev
 
 function formatGoalDiff(diff: number): string {
   return diff > 0 ? `+${diff}` : String(diff)
+}
+
+// A third-placed team paired with the group it came from (standing rows carry
+// no group field of their own).
+interface ThirdRow {
+  readonly group: string
+  readonly row: ResultsStandingRow
+}
+
+// collectBestThirds gathers each group's third-placed team (rank 3) and ranks
+// them against one another. The order mirrors the backend's group tie-break:
+// points, then goal difference, goals for, fewer goals against. Head-to-head
+// can't be reproduced client-side, so bestThird (the authoritative qualifier
+// flag) and the group letter break any remaining ties deterministically.
+function collectBestThirds(groups: readonly ResultsGroup[]): readonly ThirdRow[] {
+  return groups
+    .map((group) => {
+      const row = group.standings.find((r) => r.rank === 3)
+      return row ? { group: group.name, row } : null
+    })
+    .filter((t): t is ThirdRow => t !== null)
+    .sort((a, b) => {
+      const x = a.row
+      const y = b.row
+      return (
+        y.points - x.points ||
+        y.goalDiff - x.goalDiff ||
+        y.goalsFor - x.goalsFor ||
+        x.goalsAgainst - y.goalsAgainst ||
+        Number(y.bestThird) - Number(x.bestThird) ||
+        a.group.localeCompare(b.group)
+      )
+    })
 }
 
 // Bracket geometry, in px. CARD_W/CARD_H are the fixed match-card size; UNIT is
