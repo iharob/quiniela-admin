@@ -168,9 +168,26 @@ export interface ResultsRound {
   readonly matches: readonly ResultsMatch[]
 }
 
+// One row of the cross-group best-thirds ranking: a group's third-placed team
+// with the group it came from. Ordered by the server in qualification order;
+// the first eight have bestThird true (they currently reach the round of 32).
+export interface ResultsThirdRow {
+  readonly group: string
+  readonly team: ResultsTeam
+  readonly played: number
+  readonly points: number
+  readonly goalsFor: number
+  readonly goalsAgainst: number
+  readonly goalDiff: number
+  readonly bestThird: boolean
+}
+
 export interface ResultsData {
   readonly groups: readonly ResultsGroup[]
   readonly rounds: readonly ResultsRound[]
+  // Every group's third-placed team, pre-ranked by the server; the first eight
+  // are the provisional qualifiers.
+  readonly bestThirds: readonly ResultsThirdRow[]
   // Provisional-projection explanation; empty when the bracket has no
   // projected teams.
   readonly legend: string
