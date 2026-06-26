@@ -133,6 +133,10 @@ export interface ResultsStandingRow {
   readonly goalsFor: number
   readonly goalsAgainst: number
   readonly goalDiff: number
+  readonly yellowCards: number
+  readonly redCards: number
+  // FIFA fair-play tally (-1 per yellow, -3 per red); higher is better.
+  readonly fairPlay: number
   // Currently among the eight best third-placed teams (provisional).
   readonly bestThird: boolean
 }
@@ -179,6 +183,11 @@ export interface ResultsThirdRow {
   readonly goalsFor: number
   readonly goalsAgainst: number
   readonly goalDiff: number
+  readonly yellowCards: number
+  readonly redCards: number
+  // FIFA fair-play tally (-1 per yellow, -3 per red); higher is better. Breaks
+  // ties just above FIFA ranking. Zero until card data is ingested.
+  readonly fairPlay: number
   readonly bestThird: boolean
 }
 
