@@ -1,0 +1,34 @@
+# cihere config for quiniela-admin (Vite/TS web). Build + lint run locally; the
+# SSH deploy steps stay gated off until a deploy key is provided (the workflow's
+# HAS_KEY = `secrets.SSH_PRIVATE_KEY != ''`, so leaving it unset skips the deploy).
+
+image:
+  tag: quiniela-ci/node:22
+  dockerfile: images/node/Dockerfile
+  context: images/node
+
+platforms:
+  ubuntu-latest: quiniela-ci/node:22
+
+artifactsDir: .ci-artifacts
+
+vars:
+  # Empty -> the workflow falls back to its built-in default
+  # (https://iaales.lat/api/v1). Set here to override the build-time API base.
+  VITE_API_BASE_URL: ""
+
+secrets:
+  # To enable the deploy step, provide the server SSH key + host/user, e.g.:
+  #   SSH_PRIVATE_KEY: { base64File: ... }   # or value:/command:
+  #   SSH_HOST: { value: "iaales.lat" }
+  #   SSH_USER: { value: "deploy" }
+  # Left unset on purpose: HAS_KEY=false -> deploy steps skip, build+lint still run.
+  GITHUB_TOKEN:
+    command: gh auth token
+
+actions:
+  actions/checkout:
+    type: noop
+    run: git config --global --add safe.directory /workspace
+  actions/setup-node:
+    type: noop

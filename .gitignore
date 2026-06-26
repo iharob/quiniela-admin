@@ -11,3 +11,8 @@ dist-ssr
 
 # TypeScript build info
 *.tsbuildinfo
+
+# Local CI (.ci/) — runner lives in the standalone `cihere` repo
+.ci/.state/
+.ci/secrets.local.yaml
+.ci-artifacts/
