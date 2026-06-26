@@ -15,6 +15,7 @@ import type {
   ResultsSlot,
   ResultsStandingRow,
   ResultsTeam,
+  ResultsThirdRow,
 } from '../api/types'
 
 // ResultsPage renders the tournament's real results — group standings and
@@ -108,7 +109,7 @@ export function ResultsPage(): JSX.Element {
         </Typography>
         <Card variant="outlined" sx={{ maxWidth: 420 }}>
           <CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-            <BestThirdsTable rows={collectBestThirds(data.groups)} />
+            <BestThirdsTable rows={data.bestThirds ?? []} />
           </CardContent>
         </Card>
       </Box>
@@ -206,12 +207,13 @@ function StandingsTable({ rows }: { readonly rows: readonly ResultsStandingRow[]
   )
 }
 
-// BestThirdsTable ranks every group's third-placed team against each other in a
-// single table. The eight that qualify (row.bestThird) are highlighted exactly
-// like in StandingsTable, and a heavier bottom border marks the cut after the
-// last qualifier so the in/out boundary is visible.
-function BestThirdsTable({ rows }: { readonly rows: readonly ThirdRow[] }): JSX.Element {
-  const lastQualifier = rows.map((r) => r.row.bestThird).lastIndexOf(true)
+// BestThirdsTable renders the server-ranked best-thirds list: every group's
+// third-placed team against each other in a single table. The eight that
+// qualify (row.bestThird) are highlighted exactly like in StandingsTable, and a
+// heavier bottom border marks the cut after the last qualifier so the in/out
+// boundary is visible.
+function BestThirdsTable({ rows }: { readonly rows: readonly ResultsThirdRow[] }): JSX.Element {
+  const lastQualifier = rows.map((r) => r.bestThird).lastIndexOf(true)
   return (
     <Box
       component="table"
@@ -237,10 +239,10 @@ function BestThirdsTable({ rows }: { readonly rows: readonly ThirdRow[] }): JSX.
         </tr>
       </thead>
       <tbody>
-        {rows.map(({ group, row }, idx) => (
+        {rows.map((row, idx) => (
           <Box
             component="tr"
-            key={row.team.country || `${group}-${idx}`}
+            key={row.team.country || `${row.group}-${idx}`}
             sx={{
               ...(row.bestThird ? { bgcolor: 'action.hover' } : undefined),
               ...(idx === lastQualifier
@@ -249,7 +251,7 @@ function BestThirdsTable({ rows }: { readonly rows: readonly ThirdRow[] }): JSX.
             }}
           >
             <td>{idx + 1}</td>
-            <td>{group}</td>
+            <td>{row.group}</td>
             <td>
               <TeamLabel team={row.team} />
               {row.bestThird && ' *'}
@@ -546,39 +548,6 @@ function TeamLabel({ team, reverse }: { readonly team: ResultsTeam; readonly rev
 
 function formatGoalDiff(diff: number): string {
   return diff > 0 ? `+${diff}` : String(diff)
-}
-
-// A third-placed team paired with the group it came from (standing rows carry
-// no group field of their own).
-interface ThirdRow {
-  readonly group: string
-  readonly row: ResultsStandingRow
-}
-
-// collectBestThirds gathers each group's third-placed team (rank 3) and ranks
-// them against one another. The order mirrors the backend's group tie-break:
-// points, then goal difference, goals for, fewer goals against. Head-to-head
-// can't be reproduced client-side, so bestThird (the authoritative qualifier
-// flag) and the group letter break any remaining ties deterministically.
-function collectBestThirds(groups: readonly ResultsGroup[]): readonly ThirdRow[] {
-  return groups
-    .map((group) => {
-      const row = group.standings.find((r) => r.rank === 3)
-      return row ? { group: group.name, row } : null
-    })
-    .filter((t): t is ThirdRow => t !== null)
-    .sort((a, b) => {
-      const x = a.row
-      const y = b.row
-      return (
-        y.points - x.points ||
-        y.goalDiff - x.goalDiff ||
-        y.goalsFor - x.goalsFor ||
-        x.goalsAgainst - y.goalsAgainst ||
-        Number(y.bestThird) - Number(x.bestThird) ||
-        a.group.localeCompare(b.group)
-      )
-    })
 }
 
 // Bracket geometry, in px. CARD_W/CARD_H are the fixed match-card size; UNIT is
