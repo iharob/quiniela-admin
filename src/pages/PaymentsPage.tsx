@@ -360,13 +360,13 @@ function PaymentDialog({
 
           <Box>
             <FormControl size="small" fullWidth>
-              <InputLabel>Cubre a (beneficiarios)</InputLabel>
+              <InputLabel shrink>Cubre a (beneficiarios)</InputLabel>
               <Select
                 label="Cubre a (beneficiarios)"
                 value=""
                 displayEmpty
                 onChange={(e) => addBeneficiary(Number(e.target.value))}
-                input={<OutlinedInput label="Cubre a (beneficiarios)" />}
+                input={<OutlinedInput notched label="Cubre a (beneficiarios)" />}
                 renderValue={() => 'Agregar beneficiario…'}
                 MenuProps={{ autoFocus: false }}
               >
