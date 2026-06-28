@@ -3,7 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
@@ -34,6 +33,7 @@ import AddIcon from '@mui/icons-material/Add'
 import EditIcon from '@mui/icons-material/Edit'
 import DeleteIcon from '@mui/icons-material/Delete'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import DownloadIcon from '@mui/icons-material/Download'
 import {
   useCreatePayment,
   useDeletePayment,
@@ -47,7 +47,8 @@ import { useUsers } from '../api/hooks'
 import { extractError } from '../api/client'
 import { SectionTitle } from '../components/SectionTitle'
 import { SortCell, useSort, type SortValue } from '../components/sort'
-import type { Currency, LinkedPaymentStatus, Payment } from '../api/types'
+import { downloadCsv, toCsv } from '../utils/csv'
+import type { AdminUserListItem, Currency, LinkedPaymentStatus, Payment } from '../api/types'
 
 function formatAmount(p: Payment): string {
   if (p.amount == null) return '—'
@@ -89,8 +90,17 @@ function paymentSortValue(p: Payment, key: string): SortValue {
   }
 }
 
+// Participants who have predictions but no verified/pending payment — the people
+// to chase for the entry fee.
+function unpaidWithPredictions(
+  users: readonly AdminUserListItem[],
+): readonly AdminUserListItem[] {
+  return users.filter((u) => u.paymentStatus === 'UNPAID' && u.hasPredictions)
+}
+
 export function PaymentsPage(): JSX.Element {
   const { data, isLoading, error } = usePayments()
+  const { data: users } = useUsers()
   const del = useDeletePayment()
   const update = useUpdatePayment()
   const [adding, setAdding] = useState(false)
@@ -99,6 +109,15 @@ export function PaymentsPage(): JSX.Element {
   const closeDialog = (): void => {
     setAdding(false)
     setEditing(null)
+  }
+
+  const unpaid = unpaidWithPredictions(users ?? [])
+  const exportUnpaid = (): void => {
+    const rows: readonly (readonly string[])[] = [
+      ['userId', 'name', 'email'],
+      ...unpaid.map((u) => [String(u.userId), u.name, u.email]),
+    ]
+    downloadCsv('no-pagados.csv', toCsv(rows))
   }
 
   if (isLoading) {
@@ -129,9 +148,18 @@ export function PaymentsPage(): JSX.Element {
     <Stack spacing={2} sx={{ height: '100%', p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <SectionTitle>Pagos ({data?.length ?? 0})</SectionTitle>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
-          Nuevo pago
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            startIcon={<DownloadIcon />}
+            onClick={exportUnpaid}
+            disabled={unpaid.length === 0}
+          >
+            Exportar no pagados ({unpaid.length})
+          </Button>
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAdding(true)}>
+            Nuevo pago
+          </Button>
+        </Stack>
       </Box>
 
       <TableContainer component={Paper} sx={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -283,18 +311,30 @@ function PaymentDialog({
   }
 
   const userOptions = users ?? []
-  // Beneficiaries are quiniela participants (have predictions); keep any
-  // already-selected user too so they can still be unchecked. Then apply the
-  // in-dropdown search.
+  // The picker offers quiniela participants (have predictions) not already on the
+  // payment, narrowed by the in-dropdown search.
   const benQuery = benSearch.trim().toLowerCase()
   const benOptions = userOptions
-    .filter((u) => u.hasPredictions || beneficiaryIds.includes(u.userId))
+    .filter((u) => u.hasPredictions && !beneficiaryIds.includes(u.userId))
     .filter(
       (u) =>
         benQuery === '' ||
         u.name.toLowerCase().includes(benQuery) ||
         u.email.toLowerCase().includes(benQuery),
     )
+  // Resolve the selected ids to user records for the table; ids without a match
+  // (shouldn't happen) still show so they can be removed.
+  const selectedBeneficiaries = beneficiaryIds.map((id) => ({
+    userId: id,
+    user: userOptions.find((u) => u.userId === id),
+  }))
+  const addBeneficiary = (id: number): void => {
+    setBeneficiaryIds((prev) => (prev.includes(id) ? prev : [...prev, id]))
+    setBenSearch('')
+  }
+  const removeBeneficiary = (id: number): void => {
+    setBeneficiaryIds((prev) => prev.filter((b) => b !== id))
+  }
 
   return (
     <Dialog open onClose={onClose} fullWidth maxWidth="sm">
@@ -318,44 +358,72 @@ function PaymentDialog({
             </Select>
           </FormControl>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel>Cubre a (beneficiarios)</InputLabel>
-            <Select
-              multiple
-              label="Cubre a (beneficiarios)"
-              value={beneficiaryIds}
-              onChange={(e) => setBeneficiaryIds(e.target.value as number[])}
-              input={<OutlinedInput label="Cubre a (beneficiarios)" />}
-              MenuProps={{ autoFocus: false }}
-              renderValue={(selected) =>
-                userOptions
-                  .filter((u) => (selected as number[]).includes(u.userId))
-                  .map((u) => u.name || u.email)
-                  .join(', ')
-              }
-            >
-              <ListSubheader sx={{ p: 1, bgcolor: 'background.paper' }}>
-                <TextField
-                  size="small"
-                  autoFocus
-                  fullWidth
-                  placeholder="Buscar participante"
-                  value={benSearch}
-                  onChange={(e) => setBenSearch(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                />
-              </ListSubheader>
-              {benOptions.map((u) => (
-                <MenuItem key={u.userId} value={u.userId}>
-                  <Checkbox checked={beneficiaryIds.includes(u.userId)} />
-                  <ListItemText primary={u.name || u.email} />
-                </MenuItem>
-              ))}
-              {benOptions.length === 0 && (
-                <MenuItem disabled>Sin participantes</MenuItem>
-              )}
-            </Select>
-          </FormControl>
+          <Box>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Cubre a (beneficiarios)</InputLabel>
+              <Select
+                label="Cubre a (beneficiarios)"
+                value=""
+                displayEmpty
+                onChange={(e) => addBeneficiary(Number(e.target.value))}
+                input={<OutlinedInput label="Cubre a (beneficiarios)" />}
+                renderValue={() => 'Agregar beneficiario…'}
+                MenuProps={{ autoFocus: false }}
+              >
+                <ListSubheader sx={{ p: 1, bgcolor: 'background.paper' }}>
+                  <TextField
+                    size="small"
+                    autoFocus
+                    fullWidth
+                    placeholder="Buscar participante"
+                    value={benSearch}
+                    onChange={(e) => setBenSearch(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                  />
+                </ListSubheader>
+                {benOptions.map((u) => (
+                  <MenuItem key={u.userId} value={u.userId}>
+                    <ListItemText primary={u.name || u.email} secondary={u.email} />
+                  </MenuItem>
+                ))}
+                {benOptions.length === 0 && <MenuItem disabled>Sin participantes</MenuItem>}
+              </Select>
+            </FormControl>
+
+            <TableContainer component={Paper} variant="outlined" sx={{ mt: 1 }}>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nombre</TableCell>
+                    <TableCell>Email</TableCell>
+                    <TableCell padding="checkbox" />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {selectedBeneficiaries.map(({ userId, user }) => (
+                    <TableRow key={userId} hover>
+                      <TableCell>{user?.name || user?.email || `#${userId}`}</TableCell>
+                      <TableCell sx={{ color: 'text.secondary' }}>{user?.email ?? '—'}</TableCell>
+                      <TableCell padding="checkbox">
+                        <Tooltip title="Quitar">
+                          <IconButton size="small" onClick={() => removeBeneficiary(userId)}>
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {selectedBeneficiaries.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} sx={{ color: 'text.secondary' }}>
+                        Sin beneficiarios — cubre al pagador
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
 
           <Box sx={{ display: 'flex', gap: 1 }}>
             <TextField
