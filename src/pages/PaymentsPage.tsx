@@ -394,7 +394,7 @@ function PaymentDialog({
               <Table size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell>Nombre</TableCell>
+                    <TableCell>Nombre ({selectedBeneficiaries.length})</TableCell>
                     <TableCell>Email</TableCell>
                     <TableCell padding="checkbox" />
                   </TableRow>
