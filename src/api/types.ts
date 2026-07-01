@@ -24,6 +24,23 @@ export interface AdminUserListItem {
   readonly consistencyError?: string
 }
 
+// AdminRankingEntry mirrors the Go SimResult (api/elimination_sim.go), returned
+// by GET /admin/rankings. `eliminated` is the simulation verdict: even if all of
+// this player's remaining predictions come true (in a reachable world), someone
+// else still leads — `leaderName`/`leaderScore` is who, and `dreamScore` is the
+// most the player could still reach.
+export interface AdminRankingEntry {
+  readonly userID: number
+  readonly userName: string
+  readonly currentScore: number
+  readonly currentRank: number
+  readonly dreamScore: number
+  readonly leaderID: number
+  readonly leaderName: string
+  readonly leaderScore: number
+  readonly eliminated: boolean
+}
+
 export interface BracketGameFinding {
   readonly gameId?: number
   readonly class: string

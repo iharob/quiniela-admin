@@ -29,6 +29,7 @@ import { SettingsDialog } from './SettingsDialog'
 const TABS = [
   { label: 'Resumen', path: '/dashboard' },
   { label: 'Usuarios', path: '/users' },
+  { label: 'Clasificación', path: '/rankings' },
   { label: 'Partidos', path: '/games' },
   { label: 'Resultados', path: '/results' },
   { label: 'Pagos', path: '/payments' },

@@ -8,6 +8,7 @@ import {
 import { api } from './client'
 import type {
   AdminGame,
+  AdminRankingEntry,
   AdminSession,
   AdminUserConsistencyResponse,
   AdminUserListItem,
@@ -169,6 +170,18 @@ export function useResults(): UseQueryResult<ResultsData, Error> {
     queryKey: ['results'],
     queryFn: async (): Promise<ResultsData> =>
       (await api.get<ResultsData>('/admin/results/json')).data,
+  })
+}
+
+// The rankings query runs the elimination simulation server-side (heavy), so
+// keep it out of automatic refetches — it is fetched on page open and on manual
+// refresh only.
+export function useRankings(): UseQueryResult<readonly AdminRankingEntry[], Error> {
+  return useQuery({
+    queryKey: ['rankings'],
+    queryFn: async (): Promise<readonly AdminRankingEntry[]> =>
+      (await api.get<readonly AdminRankingEntry[]>('/admin/rankings')).data,
+    staleTime: 60_000,
   })
 }
 

@@ -7,6 +7,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { UsersPage } from './pages/UsersPage'
 import { UserDetailPage } from './pages/UserDetailPage'
+import { RankingsPage } from './pages/RankingsPage'
 import { GamesPage } from './pages/GamesPage'
 import { ResultsPage } from './pages/ResultsPage'
 import { PaymentsPage } from './pages/PaymentsPage'
@@ -28,6 +29,7 @@ export function App(): JSX.Element {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:userId" element={<UserDetailPage />} />
+        <Route path="/rankings" element={<RankingsPage />} />
         <Route path="/games" element={<GamesPage />} />
         <Route path="/results" element={<ResultsPage />} />
         <Route path="/payments" element={<PaymentsPage />} />

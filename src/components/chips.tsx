@@ -24,3 +24,11 @@ export function PaymentChip({ status }: { readonly status: PaymentStatus }): JSX
 export function LoginTypeChip({ type }: { readonly type: string }): JSX.Element {
   return <Chip size="small" variant="outlined" label={type} />
 }
+
+export function EliminationChip({ eliminated }: { readonly eliminated: boolean }): JSX.Element {
+  return eliminated ? (
+    <Chip size="small" label="Eliminado" color="error" />
+  ) : (
+    <Chip size="small" label="En carrera" color="success" />
+  )
+}
