@@ -28,13 +28,16 @@ export interface AdminUserListItem {
 // by GET /admin/rankings. `eliminated` is the simulation verdict: even if all of
 // this player's remaining predictions come true (in a reachable world), someone
 // else still leads — `leaderName`/`leaderScore` is who, and `dreamScore` is the
-// most the player could still reach.
+// most the player could still reach. `bestPosition` is the best finishing rank
+// they can still reach in that world (1 while still in the race, >= 2 once
+// eliminated).
 export interface AdminRankingEntry {
   readonly userID: number
   readonly userName: string
   readonly currentScore: number
   readonly currentRank: number
   readonly dreamScore: number
+  readonly bestPosition: number
   readonly leaderID: number
   readonly leaderName: string
   readonly leaderScore: number

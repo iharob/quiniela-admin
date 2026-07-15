@@ -32,6 +32,8 @@ function rankingSortValue(r: AdminRankingEntry, key: string): SortValue {
       return r.currentScore
     case 'dream':
       return r.dreamScore
+    case 'bestPosition':
+      return r.bestPosition
     case 'eliminated':
       return r.eliminated
     case 'leader':
@@ -73,7 +75,8 @@ export function RankingsPage(): JSX.Element {
         </SectionTitle>
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
           Eliminado = aunque acierte todas sus predicciones restantes, otro participante
-          sigue quedando primero.
+          sigue quedando primero. Mejor posición = el mejor puesto que aún puede alcanzar
+          si acierta todo lo que le queda.
         </Typography>
         <Box sx={{ mt: 1 }}>
           <TextField
@@ -93,6 +96,7 @@ export function RankingsPage(): JSX.Element {
               <SortCell label="Participante" sortKey="name" sort={sort} />
               <SortCell label="Puntos" sortKey="score" sort={sort} align="right" />
               <SortCell label="Máx. alcanzable" sortKey="dream" sort={sort} align="right" />
+              <SortCell label="Mejor posición" sortKey="bestPosition" sort={sort} align="right" />
               <SortCell label="Estado" sortKey="eliminated" sort={sort} />
               <SortCell label="Líder en su mejor caso" sortKey="leader" sort={sort} />
             </TableRow>
@@ -104,6 +108,7 @@ export function RankingsPage(): JSX.Element {
                 <TableCell>{r.userName || '—'}</TableCell>
                 <TableCell align="right">{r.currentScore}</TableCell>
                 <TableCell align="right">{r.dreamScore}</TableCell>
+                <TableCell align="right">{r.eliminated ? `${r.bestPosition}º` : '—'}</TableCell>
                 <TableCell>
                   <EliminationChip eliminated={r.eliminated} />
                 </TableCell>
